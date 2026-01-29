@@ -41,7 +41,8 @@ docker-compose.yml
 .coverage
 htmlcov/
 
-# Poetry (poetry.lock не исключаем — нужен для воспроизводимой сборки образа)
+# Poetry
+poetry.lock
 
 # Environment
 .env

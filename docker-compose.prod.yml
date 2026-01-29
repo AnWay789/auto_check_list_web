@@ -1,0 +1,16 @@
+# Production override: Gunicorn вместо runserver, Redis/PostgreSQL не пробрасываются наружу
+# Запуск: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  web:
+    command: gunicorn config.wsgi:application -b 0.0.0.0:8000 -w 4 --timeout 120 --access-logfile - --error-logfile -
+    volumes:
+      - .:/app
+      # Каталог для collectstatic; Nginx раздаёт /var/www/auto_check_list/static
+      - ./static:/app/static
+
+  redis:
+    ports: []  # не открывать Redis наружу
+
+  db:
+    ports: []  # не открывать PostgreSQL наружу

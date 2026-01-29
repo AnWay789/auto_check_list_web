@@ -141,6 +141,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
 
 DJANGO_URL = os.environ.get("DJANGO_URL", "localhost:8000")
 # Внешний URL для генерации ссылок, доступных из браузера (для fake_url)

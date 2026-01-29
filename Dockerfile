@@ -1,47 +1,71 @@
-FROM python:3.13-slim
+# auto_check_list — минимальный образ для Django + Celery
+# - Multi-stage: в финале нет Poetry, gcc, libpq-dev — только runtime (libpq5, netcat, gosu)
+# - Безопасность: приложение запускается от пользователя app (gosu), не root
+# - Суперпользователь: при первом запуске создаётся, если заданы DJANGO_SUPERUSER_* в .env
+# =============================================================================
+# Stage 1: builder — установка зависимостей, экспорт requirements
+# =============================================================================
+FROM python:3.13-slim AS builder
 
-# Установка системных зависимостей
-RUN apt-get update && apt-get install -y \
+WORKDIR /build
+
+# Только для сборки (не попадают в итоговый образ)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    netcat-openbsd \
-    postgresql-client \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Установка Poetry
 RUN pip install --no-cache-dir poetry
 
-# Настройка Poetry (не создавать виртуальное окружение, так как мы в контейнере)
-RUN poetry config virtualenvs.create false
+COPY pyproject.toml poetry.lock* ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-interaction --no-ansi --no-root \
+    && poetry export -f requirements.txt --without-hashes -o requirements.txt
 
-# Установка рабочей директории
+# =============================================================================
+# Stage 2: runtime — минимальный образ без poetry и компиляторов
+# =============================================================================
+FROM python:3.13-slim AS runtime
+
+# Метаданные образа
+LABEL maintainer="auto_check_list"
+
+# Только runtime-зависимости (минимальный набор)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# gosu — переключение на non-root без лишних пакетов
+COPY --from=tianon/gosu:1.19 /usr/local/bin/gosu /usr/local/bin/gosu
+RUN chmod +x /usr/local/bin/gosu
+
+# Непривилегированный пользователь (безопасность)
+RUN groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
+
 WORKDIR /app
 
-# Копирование файлов зависимостей
-COPY pyproject.toml poetry.lock* ./
-COPY README.md ./
+# Копируем только requirements из builder, ставим зависимости (в /usr/local — доступно всем)
+COPY --from=builder /build/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt \
+    && rm /tmp/requirements.txt
 
-# Установка зависимостей
-RUN poetry install --no-interaction --no-ansi --no-root
+# Код приложения
+COPY --chown=app:app . .
 
-# Копирование кода приложения
-COPY . .
-
-# Копирование entrypoint скрипта
+# Entrypoint — от root, т.к. нужен nc и доступ к БД при старте; приложение запускается от app
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Создание директории для статики
-RUN mkdir -p /app/static
+RUN mkdir -p /app/static && chown -R app:app /app/static
 
-# Переменные окружения
-ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=config.settings
+ENV PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=config.settings
 
-# Порт для Django
 EXPOSE 8000
 
-# Entrypoint
+# Entrypoint выполняется от root (миграции, суперпользователь); приложение — от app через gosu
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
-# Команда по умолчанию (будет переопределена в docker-compose)
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

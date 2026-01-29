@@ -15,12 +15,15 @@ while ! nc -z redis 6379; do
 done
 echo "Redis is ready!"
 
-# Выполнение миграций
+# Миграции
 echo "Running migrations..."
 python manage.py migrate --noinput
 
-# Сбор статики (если нужно)
-# python manage.py collectstatic --noinput
+# Создание суперпользователя при первом запуске (переменные из .env, пароль не в shell)
+if [ -n "${DJANGO_SUPERUSER_USERNAME}" ] && [ -n "${DJANGO_SUPERUSER_PASSWORD}" ]; then
+  echo "Creating superuser if needed..."
+  python scripts/create_superuser_if_missing.py || true
+fi
 
-# Выполнение команды, переданной в качестве аргументов
-exec "$@"
+# Запуск переданной команды от непривилегированного пользователя app
+exec gosu app "$@"

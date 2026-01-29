@@ -1,0 +1,29 @@
+[project]
+name = "auto-check-list"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "django (<6.0.0)",
+    "django-ninja (>=1.5.3,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "django-celery-beat (>=2.8.1,<3.0.0)",
+    "pydantic (>=2.12.5,<3.0.0)",
+    "celery (>=5.2.0,<6.0.0)",
+    "kombu[redis] (>=5.3.0,<6.0.0)",
+    "dj-database-url (>=2.1.0,<3.0.0)",
+    "psycopg2-binary (>=2.9.0,<3.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "auto_check_list", from = "src"}]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -26,7 +26,9 @@ except ImportError:
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#'
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-default-key")
+SESSION_COOKIE_NAME = 'sessionid_auto_check'
+CSRF_COOKIE_NAME    = 'csrftoken_auto_check'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "True") == "True"

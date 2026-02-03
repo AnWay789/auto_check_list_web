@@ -35,23 +35,26 @@
 
 1. **Клонируйте репозиторий и перейдите в каталог проекта.**
 
-2. **Создайте `.env` из примера:**
+2. **Создайте общий `.env` в родительской директории** (каталог, содержащий оба проекта: `auto_check_list` и `auto_check_list_bot`):
    ```bash
-   cp .env.example .env
+   cd /path/to/puls   # родительская директория обоих проектов
+   cp auto_check_list/.env.example .env
    ```
 
 3. **Отредактируйте `.env`:**
    - При необходимости настройте `POSTGRES_*`, `DEBUG`, `ALLOWED_HOSTS`.
    - Для работы Telegram-бота в Docker задайте `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID`.
    - Если бот поднимается в том же `docker-compose`, укажите путь к проекту бота в **`TELEGRAM_PJ_PATH`** (каталог с `Dockerfile`/кодом бота).  
-     Пример: `TELEGRAM_PJ_PATH=../telegram_bot`
+     Пример: `TELEGRAM_PJ_PATH=./auto_check_list_bot`
 
-4. **Запуск только бэкенда (Django + Celery + Redis + PostgreSQL), без бота:**
+4. **Запуск.** Выполняйте `docker-compose` из каталога `auto_check_list`. При указании в `docker-compose.yml` строки `env_file: ../.env` переменные будут браться из общего `.env` в родительской директории.
+
+   **Запуск только бэкенда (Django + Celery + Redis + PostgreSQL), без бота:**
    ```bash
    docker-compose up -d redis db web celery_worker celery_beat
    ```
 
-   **Запуск с Telegram-ботом** (нужен настроенный `TELEGRAM_PJ_PATH` в `.env`):
+   **Запуск с Telegram-ботом** (нужен настроенный `TELEGRAM_PJ_PATH` в общем `.env` в родительской директории):
    ```bash
    docker-compose up -d --build
    ```
@@ -84,7 +87,7 @@
    cd /path/to/auto_check_list
    ```
 
-4. **Опционально:** создайте `.env` из `.env.example` и при необходимости задайте `DATABASE_URL` для PostgreSQL.  
+4. **Опционально:** убедитесь, что в родительской директории (содержащей оба проекта) есть общий `.env` (см. шаг 2). При необходимости задайте там `DATABASE_URL` для PostgreSQL.  
    Без `DATABASE_URL` используется **SQLite** (`db.sqlite3` в корне проекта).
 
 5. **Миграции и суперпользователь:**
@@ -166,7 +169,7 @@ docker-compose logs -f redis
 
 ### Запуск с Telegram-ботом в Docker
 
-Сервис `telegram_bot` в `docker-compose.yml` собирается из отдельного проекта. В `.env` нужно указать:
+Сервис `telegram_bot` в `docker-compose.yml` собирается из отдельного проекта. В **общем `.env` в родительской директории** (каталог, содержащий `auto_check_list` и `auto_check_list_bot`) нужно указать:
 
 - **`TELEGRAM_PJ_PATH`** — путь к каталогу проекта Telegram-бота (содержит `Dockerfile` и код бота).
 - **`TELEGRAM_BOT_TOKEN`** и **`TELEGRAM_CHAT_ID`** — для работы бота.
@@ -185,7 +188,7 @@ docker-compose up -d redis db web celery_worker celery_beat
 
 1. Redis запущен.
 2. `poetry install` → `poetry shell`.
-3. При необходимости скопировать и настроить `.env` (для PostgreSQL задать `DATABASE_URL`).
+3. При необходимости скопировать и настроить общий `.env` в родительской директории (для PostgreSQL задать `DATABASE_URL`).
 4. `python manage.py migrate` и `python manage.py createsuperuser`.
 5. В трёх терминалах: `runserver`, `celery -A config worker -l info`, `celery -A config beat -l info`.
 
@@ -205,7 +208,7 @@ docker-compose up -d redis db web celery_worker celery_beat
 
 ## Переменные окружения
 
-Основные переменные (полный пример — в `.env.example`):
+Основные переменные (полный пример — в `.env.example` в корне проекта или в родительской директории):
 
 | Переменная | Описание | По умолчанию (локально) |
 |------------|----------|--------------------------|

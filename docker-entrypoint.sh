@@ -17,10 +17,24 @@ echo "Redis is ready!"
 
 # Выполнение миграций
 echo "Running migrations..."
+python manage.py makemigrations --noinput
 python manage.py migrate --noinput
 
 # Сбор статики (если нужно)
 # python manage.py collectstatic --noinput
+
+# Создаем суперпользователя для админки (встроенная команда Django корректно хеширует пароль)
+echo "Проверка суперпользователя..."
+if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
+    echo "Создание суперпользователя $DJANGO_SUPERUSER_USERNAME..."
+    python manage.py createsuperuser \
+        --noinput \
+        --username "$DJANGO_SUPERUSER_USERNAME" \
+        --email "${DJANGO_SUPERUSER_EMAIL:-admin@example.com}" \
+        || echo "Суперпользователь уже существует или ошибка (пропускаем)"
+else
+    echo "Переменные DJANGO_SUPERUSER_USERNAME/PASSWORD не установлены"
+fi
 
 # Выполнение команды, переданной в качестве аргументов
 exec "$@"

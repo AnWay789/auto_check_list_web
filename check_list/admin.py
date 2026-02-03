@@ -2,13 +2,14 @@ from django.contrib import admin
 from .models import Dashboard, CheckListItem, CheckEvents
 
 from .utils.excel import export_checkevents_to_excel
+from .utils.other import switch_active_status, set_start_at_now
 
 @admin.register(CheckListItem)
 class CheckListItemAdmin(admin.ModelAdmin):
     list_display = ( 'dashboard', 'description', 'interval', 'crontab', 'is_active', 'start_at')
     list_filter = ('is_active', 'dashboard', 'interval', 'crontab')
     search_fields = ('dashboard', 'description',)
-
+    actions = [switch_active_status, set_start_at_now]
 
 @admin.register(Dashboard)
 class DashboardAdmin(admin.ModelAdmin):

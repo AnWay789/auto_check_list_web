@@ -11,13 +11,16 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
 import os
-
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+try:
+    load_dotenv(BASE_DIR.parent / '.env')
+except ImportError:
+    pass
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
 
     'check_list',
     'api',
+    'lighthouse',
 ]
 
 MIDDLEWARE = [
@@ -156,4 +160,11 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Lighthouse → ELK (опционально): если заданы, результаты Lighthouse отправляются в ELK
+ELK_URL = os.environ.get("ELK_URL")  # например https://10.222.0.3:9200/runner-vm-bots-logs/_doc/
+ELK_USER = os.environ.get("ELK_USER")
+ELK_PASSWORD = os.environ.get("ELK_PASSWORD")
+ELK_AUTH = os.environ.get("ELK_AUTH")  # пароль при использовании ELK_USER по умолчанию
+ELK_VERIFY_SSL = os.environ.get("ELK_VERIFY_SSL", "false").lower() == "true"
 

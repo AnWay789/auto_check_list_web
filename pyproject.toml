@@ -17,7 +17,10 @@ dependencies = [
     "kombu[redis] (>=5.3.0,<6.0.0)",
     "dj-database-url (>=2.1.0,<3.0.0)",
     "psycopg2-binary (>=2.9.0,<3.0.0)",
-    "openpyxl (>=3.1.5,<4.0.0)"
+    "openpyxl (>=3.1.5,<4.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "tenacity (>=9.1.2,<10.0.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
 ]
 
 [tool.poetry]

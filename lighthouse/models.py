@@ -1,4 +1,4 @@
-from logging import Logger
+import logging
 
 from datetime import timedelta
 from django.utils import timezone
@@ -7,24 +7,26 @@ from django.db import models
 from django_celery_beat.models import IntervalSchedule, CrontabSchedule
 from celery.schedules import crontab as celery_crontab
 
-logger = Logger(__name__)
+logger = logging.getLogger(__name__)
 
-class DashType(models.Model):
-    name = models.TextField()
 
-class Dashboard(models.Model):
-    uid = models.CharField(unique=True, max_length=128)
-    name = models.CharField(max_length=255)
+class Source(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100)
     url = models.URLField()
-    time_for_check = models.IntegerField(help_text="Время в минутах для проверки дашборда")
-
-    def __str__(self):
-        return self.name
+    headers = models.JSONField(blank=True, null=True)
+    metadata = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Произвольные метаданные для ELK (например project, page_type).",
+    )
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
 
 class CheckListItem(models.Model):
     id = models.AutoField(primary_key=True)
-    dashboard = models.ForeignKey(
-        Dashboard,
+    source = models.ForeignKey(
+        Source,
         on_delete=models.CASCADE,
         related_name='checklist_items'
     )
@@ -34,14 +36,16 @@ class CheckListItem(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='check_list_interval_items',
+        help_text=("Интервал запуска задачи."
+                    "\n!!! Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     crontab = models.ForeignKey(
         CrontabSchedule,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,  # или другое имя
-        related_name='check_list_crontab_items',
+        help_text=("Расписание запуска задачи по crontab."
+                    "\n!!! Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     is_active = models.BooleanField(default=True)
     start_at = models.DateTimeField()
@@ -72,21 +76,20 @@ class CheckListItem(models.Model):
         return self.description
 
 class CheckEvents(models.Model):
-    uuid = models.UUIDField(primary_key=True)
-    dash_type = models.ForeignKey(
-        DashType,
-        on_delete=models.SET_NULL,
-        null=True
-    )
-    dashboard = models.ForeignKey(
-        Dashboard,
+    id = models.AutoField(primary_key=True)
+    source = models.ForeignKey(
+        Source,
         on_delete=models.CASCADE,
-        related_name='history_dashboards'
+        related_name='check_events',
     )
     event_time = models.DateTimeField(auto_now_add=True)
-    check_time = models.DateTimeField(null=True, blank=True)
-    no_problem = models.BooleanField(default=True)
-    checked = models.BooleanField(default=False)
+    status = models.CharField(max_length=32, blank=True, null=True)
+    metrics = models.JSONField(
+        blank=True,
+        null=True,
+        help_text="Метрики Lighthouse: fcp_ms, fcp_s, tbt_ms, tbt_s, si_ms, si_s, lcp_ms, lcp_s, cls.",
+    )
+    error_message = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"History for {self.dashboard.name} at {self.event_time}"
+        return f"History for {self.source.name} at {self.event_time}"

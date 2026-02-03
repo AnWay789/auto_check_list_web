@@ -43,4 +43,4 @@ def export_checkevents_to_excel(modeladmin, request, queryset):
         response["Content-Disposition"] = f'attachment; filename="{filename}"'
         return response
 
-
+export_checkevents_to_excel.short_description = "Выгрузить выбранные cобытия в Excel"

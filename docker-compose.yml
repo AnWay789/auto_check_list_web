@@ -28,7 +28,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
       - .:/app
       - static_volume:/app/static
     ports:
-      - "8000:8000"
+      - "9000:9000"
     env_file: ../.env
     environment:
       - DEBUG=${DEBUG:-True}
@@ -51,8 +51,8 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web}
       - DJANGO_URL=${DJANGO_URL:-web:8000}
       - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
       - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
       - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-}
@@ -79,8 +79,8 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DJANGO_URL=${DJANGO_URL:-web:8000}
       - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
       - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
     depends_on:
@@ -106,8 +106,8 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - DJANGO_URL=${DJANGO_URL:-web:8000}
       - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
       - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
     depends_on:
@@ -129,10 +129,10 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - DJANGO_API_URL=http://web:8000
-      - DJANGO_CALLBACK_ENDPOINT=/api/dashbord_colback/
-      - API_HOST=0.0.0.0
-      - API_PORT=8001
+      - DJANGO_API_URL=${DJANGO_API_URL}
+      - DJANGO_CALLBACK_ENDPOINT=${DJANGO_CALLBACK_ENDPOINT}
+      - API_HOST=${API_HOST}
+      - API_PORT=${API_PORT}
     ports:
       - "8001:8001"
     depends_on:

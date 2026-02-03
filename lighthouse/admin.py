@@ -3,7 +3,7 @@ from django.contrib import messages
 
 from lighthouse.models import CheckEvents, CheckListItem, Source
 from lighthouse.tasks import run_lighthouse_for_source
-
+from check_list.utils.other import switch_active_status, set_start_at_now
 
 def run_lighthouse_action(modeladmin, request, queryset):
     """Экшен админки: поставить в очередь запуск Lighthouse для выбранных источников."""
@@ -21,7 +21,7 @@ run_lighthouse_action.short_description = "Запустить Lighthouse"
 
 @admin.register(Source)
 class SourceAdmin(admin.ModelAdmin):
-    list_display = ("name", "url", "is_active")
+    list_display = ("name", "url", "description", "metadata", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name", "url", "description")
     actions = [run_lighthouse_action]
@@ -32,7 +32,7 @@ class CheckListItemAdmin(admin.ModelAdmin):
     list_display = ("source", "description", "interval", "crontab", "is_active", "start_at")
     list_filter = ("is_active", "interval", "crontab")
     search_fields = ("source__name", "description")
-    raw_id_fields = ("source",)
+    actions = [switch_active_status, set_start_at_now]
 
 
 @admin.register(CheckEvents)

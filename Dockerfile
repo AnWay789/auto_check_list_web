@@ -1,10 +1,36 @@
 FROM python:3.13-slim
 
-# Установка системных зависимостей
+# Установка системных зависимостей + Node.js, Chromium для Lighthouse
 RUN apt-get update && apt-get install -y \
     gcc \
     netcat-openbsd \
     postgresql-client \
+    curl \
+    ca-certificates \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get install -y \
+    chromium \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xdg-utils \
+    --no-install-recommends \
+    && npm install -g lighthouse \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка Poetry
@@ -37,6 +63,8 @@ RUN mkdir -p /app/static
 # Переменные окружения
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=config.settings
+# Путь к Chromium для Lighthouse (headless в контейнере)
+ENV CHROME_PATH=/usr/bin/chromium
 
 # Порт для Django
 EXPOSE 8000

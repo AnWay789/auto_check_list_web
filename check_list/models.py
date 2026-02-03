@@ -44,7 +44,8 @@ class CheckListItem(models.Model):
         related_name='check_list_crontab_items',
     )
     is_active = models.BooleanField(default=True)
-    start_at = models.DateTimeField()
+    start_at = models.DateTimeField(default=timezone.now()+timedelta(minutes=5),
+                                    help_text="Время запуска задачи. (по стандарту через 5 минут от текущего времени)")
 
     def set_next_run(self):
         """

@@ -22,7 +22,7 @@ def _post_to_elk(result: dict) -> None:
     )
     verify_ssl = getattr(settings, "ELK_VERIFY_SSL", False)
     try:
-        auth = (elk_user, elk_password) if (elk_user and elk_password) else None
+        auth = (elk_user, elk_password) if (elk_user and elk_password) else ("None", "None")
         with httpx.Client(verify=verify_ssl, timeout=30.0) as client:
             resp = client.post(elk_url, json=result, auth=auth)
             resp.raise_for_status()
@@ -35,6 +35,7 @@ def _post_to_elk(result: dict) -> None:
 def run_lighthouse_for_source(source_id: int) -> dict | None:
     """
     Запускает Lighthouse для одного источника и сохраняет результат в CheckEvents.
+    Вызывается вручную в админке Source.
     """
     try:
         source = Source.objects.get(pk=source_id)
@@ -66,7 +67,7 @@ def run_lighthouse_for_source(source_id: int) -> dict | None:
 
 
 @app.task
-def run_scheduled_lighthouse_checks():
+def start_lighthouse_checks():
     """
     Периодическая задача: находит CheckListItem (lighthouse), готовые к проверке,
     и ставит в очередь по одной задаче на каждый элемент (распараллеливание).
@@ -104,6 +105,7 @@ def run_lighthouse_for_checklist_item(item_id: int) -> dict | None:
     source = item.source
     event = CheckEvents.objects.create(source=source)
     try:
+        logger.info("Running lighthouse for checklist item %s (source %s), headers - %s", item_id, source.name, source.headers)
         result = run_lighthouse(
             url=source.url,
             metadata=source.metadata or {},

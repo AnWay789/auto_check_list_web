@@ -66,15 +66,20 @@ def run_lighthouse(
     headers = headers or {}
     tmp_path = None
 
+    # Флаги для headless в контейнере: --no-sandbox, --disable-gpu
+    chrome_flags = "--headless --no-sandbox --disable-cache --user-data-dir=/dev/null --disable-gpu"
     base_cmd = [
         "lighthouse",
         url,
         "--quiet",
-        "--chrome-flags=--headless --disable-cache --user-data-dir=/dev/null",
+        f"--chrome-flags={chrome_flags}",
         "--output=json",
         "--output-path=stdout",
         "--only-audits=first-contentful-paint,total-blocking-time,speed-index,largest-contentful-paint,cumulative-layout-shift",
     ]
+    chrome_path = os.environ.get("CHROME_PATH")
+    if chrome_path:
+        base_cmd.append(f"--chrome-path={chrome_path}")
 
     @retry(
         stop=stop_after_attempt(3),

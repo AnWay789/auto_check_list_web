@@ -11,17 +11,29 @@ logger = logging.getLogger(__name__)
 
 
 class Source(models.Model):
-    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     url = models.URLField()
-    headers = models.JSONField(blank=True, null=True)
+    headers = models.JSONField(default=None, blank=True, null=True,
+                               help_text=("Произвольные заголовки для запроса Lighthouse."
+                                                                 "Формат: {\"Header-Name\": \"Header Value\"}"
+                                                                 "Ecсли заголовки не нужны, оставить null."))
     metadata = models.JSONField(
         blank=True,
         null=True,
-        help_text="Произвольные метаданные для ELK (например project, page_type).",
+        default=(
+            {
+                "project": "not set",
+                "page_type": "not set"
+            }
+        ),
+        help_text=("Произвольные метаданные для ELK (например project, page_type)."
+                   "Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}")
     )
-    description = models.TextField()
+    description = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
 
 class CheckListItem(models.Model):
     id = models.AutoField(primary_key=True)
@@ -36,19 +48,20 @@ class CheckListItem(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text=("Интервал запуска задачи."
-                    "\n!!! Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
+        help_text=("Интервал запуска задачи.\n\n\n"
+                    "Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     crontab = models.ForeignKey(
         CrontabSchedule,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,  # или другое имя
-        help_text=("Расписание запуска задачи по crontab."
-                    "\n!!! Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
+        help_text=("Расписание запуска задачи по crontab.\n\n\n"
+                    "Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     is_active = models.BooleanField(default=True)
-    start_at = models.DateTimeField()
+    start_at = models.DateTimeField(default=timezone.now()+timedelta(minutes=5),
+                                    help_text="Время запуска задачи. (по стандарту через 5 минут от текущего времени)")
 
     def set_next_run(self):
         """

@@ -68,7 +68,7 @@ services:
 
   celery_worker:
     build: .
-    container_name: auto_check_list_celery_worker
+    #container_name: auto_check_list_celery_worker
     command: celery -A config worker -l info --concurrency=4
     volumes:
       - .:/app

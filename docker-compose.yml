@@ -1,6 +1,6 @@
 services:
   redis:
-    env_file: ../env.env
+    env_file: ../.env
     image: redis:7-alpine
     container_name: auto_check_list_redis
     ports:
@@ -18,7 +18,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: auto_check_list_db
-    env_file: ../env.env
+    env_file: ../.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-auto_check_list}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -46,7 +46,7 @@ services:
       - static_volume:/app/static
     ports:
       - "9000:9000"
-    env_file: ../env.env
+    env_file: ../.env
     environment:
       - RUN_MIGRATIONS=1
 
@@ -75,7 +75,7 @@ services:
     command: celery -A config worker -l info --concurrency=4
     volumes:
       - .:/app
-    env_file: ../env.env
+    env_file: ../.env
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
@@ -102,7 +102,7 @@ services:
     command: celery -A config beat -l info
     volumes:
       - .:/app
-    env_file: ../env.env
+    env_file: ../.env
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
@@ -128,7 +128,7 @@ services:
       context: ${TELEGRAM_PJ_PATH}
     container_name: auto_check_list_telegram_bot
     command: python main.py
-    env_file: ../env.env
+    env_file: ../.env
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}

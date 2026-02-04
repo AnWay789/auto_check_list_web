@@ -72,6 +72,7 @@ services:
   celery_worker:
     image: auto_check_list_web:latest
     shm_size: 1gb
+    init: true
     command: celery -A config worker -l info --concurrency=2
     volumes:
       - .:/app

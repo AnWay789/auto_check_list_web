@@ -2,6 +2,8 @@
 Запуск Lighthouse CLI и извлечение метрик (FCP, TBT, SI, LCP, CLS).
 Логика перенесена из autoLighthouse; использует стандартный logging.
 """
+import shutil
+import uuid
 import json
 import logging
 import os
@@ -67,7 +69,8 @@ def run_lighthouse(
     tmp_path = None
 
     # Флаги для headless в контейнере: --no-sandbox, --disable-gpu
-    chrome_flags = "--headless --no-sandbox --disable-cache --user-data-dir=/dev/null --disable-gpu"
+    user_data_dir = f"/tmp/chrome-profile-{uuid.uuid4().hex}"
+    chrome_flags = f"--headless --no-sandbox --disable-cache --user-data-dir={user_data_dir} --disable-gpu"
     base_cmd = [
         "lighthouse",
         url,
@@ -83,7 +86,7 @@ def run_lighthouse(
 
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_fixed(2),
+        wait=wait_fixed(10),
         retry=retry_if_exception_type(
             (subprocess.CalledProcessError, subprocess.TimeoutExpired, json.JSONDecodeError),
         ),
@@ -201,3 +204,5 @@ def run_lighthouse(
                 logger.info("Removed temporary headers file: %s", tmp_path)
             except OSError as e:
                 logger.warning("Failed to remove temporary file %s: %s", tmp_path, e)
+        # Удаляем временный профиль Chrome
+        shutil.rmtree(user_data_dir, ignore_errors=True)

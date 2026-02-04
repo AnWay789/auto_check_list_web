@@ -37,8 +37,7 @@ services:
 
   web:
     build: .
-    image: auto_check_list_web:latest
-    shm_size: 1gb
+    image: auto_check_list_web:latest   
     container_name: auto_check_list_web
     command: python manage.py runserver 0.0.0.0:9000
     volumes:
@@ -72,7 +71,8 @@ services:
 
   celery_worker:
     image: auto_check_list_web:latest
-    command: celery -A config worker -l info --concurrency=4
+    shm_size: 1gb
+    command: celery -A config worker -l info --concurrency=2
     volumes:
       - .:/app
     env_file: ../.env

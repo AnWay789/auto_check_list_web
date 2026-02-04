@@ -125,11 +125,11 @@ services:
       - auto_check_list_network
 
   telegram_bot:
+    env_file: ../.env
     build:
       context: ${TELEGRAM_PJ_PATH}
     container_name: auto_check_list_telegram_bot
     command: python main.py
-    env_file: ../.env
     environment:
       # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       # - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}

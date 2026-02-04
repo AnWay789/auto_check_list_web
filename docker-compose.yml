@@ -130,7 +130,7 @@ services:
       context: ${TELEGRAM_PJ_PATH}
     container_name: auto_check_list_telegram_bot
     command: python main.py
-    environment:
+    # environment:
       # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       # - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       # - DJANGO_API_URL=${DJANGO_API_URL}

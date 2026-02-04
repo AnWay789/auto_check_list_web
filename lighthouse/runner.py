@@ -123,6 +123,7 @@ def run_lighthouse(
             "lcp_ms": lcp,
             "lcp_s": round(lcp / 1000, 2) if lcp is not None else None,
             "cls": cls,
+            "raw_audits": data["audits"],
         }
 
         return {

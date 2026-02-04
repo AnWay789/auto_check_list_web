@@ -19,10 +19,10 @@ services:
     image: postgres:15-alpine
     container_name: auto_check_list_db
     env_file: ../.env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-auto_check_list}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    # environment:
+    #   POSTGRES_DB: ${POSTGRES_DB:-auto_check_list}
+    #   POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    #   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -49,18 +49,18 @@ services:
     environment:
       - RUN_MIGRATIONS=1
 
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web}
-      - DJANGO_URL=${DJANGO_URL:-web:8000}
-      - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
-      - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
-      - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-}
-      - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
-      - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-}
+      # - DEBUG=${DEBUG:-True}
+      # - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
+      # - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web}
+      # - DJANGO_URL=${DJANGO_URL:-web:8000}
+      # - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
+      # - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      # - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      # - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
+      # - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
+      # - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-}
+      # - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
+      # - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-}
     depends_on:
       redis:
         condition: service_healthy
@@ -77,16 +77,16 @@ services:
     volumes:
       - .:/app
     env_file: ../.env
-    environment:
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - DJANGO_URL=${DJANGO_URL:-web:8000}
-      - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
-      - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
+    # environment:
+    #   - DEBUG=${DEBUG:-True}
+    #   - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
+    #   - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    #   - DJANGO_URL=${DJANGO_URL:-web:8000}
+    #   - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
+    #   - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    #   - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    #   - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
+    #   - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
     depends_on:
       redis:
         condition: service_healthy
@@ -104,16 +104,16 @@ services:
     volumes:
       - .:/app
     env_file: ../.env
-    environment:
-      - DEBUG=${DEBUG:-True}
-      - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      - DJANGO_URL=${DJANGO_URL:-web:8000}
-      - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
-      - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
+    # environment:
+    #   - DEBUG=${DEBUG:-True}
+    #   - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
+    #   - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+    #   - DJANGO_URL=${DJANGO_URL:-web:8000}
+    #   - DJANGO_EXTERNAL_URL=${DJANGO_EXTERNAL_URL:-localhost:8000}
+    #   - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    #   - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    #   - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-auto_check_list}
+    #   - TELEGRAM_URL=${TELEGRAM_URL:-host.docker.internal:8001}
     depends_on:
       redis:
         condition: service_healthy
@@ -131,12 +131,12 @@ services:
     command: python main.py
     env_file: ../.env
     environment:
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - DJANGO_API_URL=${DJANGO_API_URL}
-      - DJANGO_CALLBACK_ENDPOINT=${DJANGO_CALLBACK_ENDPOINT}
-      - API_HOST=${API_HOST}
-      - API_PORT=${API_PORT}
+      # - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      # - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      # - DJANGO_API_URL=${DJANGO_API_URL}
+      # - DJANGO_CALLBACK_ENDPOINT=${DJANGO_CALLBACK_ENDPOINT}
+      # - API_HOST=${API_HOST}
+      # - API_PORT=${API_PORT}
     ports:
       - "8001:8001"
     depends_on:

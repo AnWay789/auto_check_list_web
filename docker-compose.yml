@@ -1,6 +1,6 @@
 services:
   redis:
-    env_file: ../.env
+    env_file: ../env.env
     image: redis:7-alpine
     container_name: auto_check_list_redis
     ports:
@@ -18,7 +18,7 @@ services:
   db:
     image: postgres:15-alpine
     container_name: auto_check_list_db
-    env_file: ../.env
+    env_file: ../env.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-auto_check_list}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -37,6 +37,7 @@ services:
 
   web:
     build: .
+    image: auto_check_list_web:latest
     container_name: auto_check_list_web
     command: python manage.py runserver 0.0.0.0:9000
     volumes:
@@ -44,8 +45,10 @@ services:
       - static_volume:/app/static
     ports:
       - "9000:9000"
-    env_file: ../.env
+    env_file: ../env.env
     environment:
+      - RUN_MIGRATIONS=1
+
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web}
@@ -67,12 +70,11 @@ services:
       - auto_check_list_network
 
   celery_worker:
-    build: .
-    #container_name: auto_check_list_celery_worker
+    image: auto_check_list_web:latest
     command: celery -A config worker -l info --concurrency=4
     volumes:
       - .:/app
-    env_file: ../.env
+    env_file: ../env.env
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
@@ -94,12 +96,12 @@ services:
       - auto_check_list_network
 
   celery_beat:
-    build: .
+    image: auto_check_list_web:latest
     container_name: auto_check_list_celery_beat
     command: celery -A config beat -l info
     volumes:
       - .:/app
-    env_file: ../.env
+    env_file: ../env.env
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
@@ -125,7 +127,7 @@ services:
       context: ${TELEGRAM_PJ_PATH}
     container_name: auto_check_list_telegram_bot
     command: python main.py
-    env_file: ../.env
+    env_file: ../env.env
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}

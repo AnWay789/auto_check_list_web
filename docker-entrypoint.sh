@@ -16,9 +16,11 @@ done
 echo "Redis is ready!"
 
 # Выполнение миграций
-echo "Running migrations..."
-python manage.py makemigrations --noinput
-python manage.py migrate --noinput
+if [ "$RUN_MIGRATIONS" = "1" ]; then
+    echo "Running migrations..."
+    python manage.py makemigrations --noinput
+    python manage.py migrate --noinput
+fi
 
 # Сбор статики (если нужно)
 # python manage.py collectstatic --noinput

@@ -15,7 +15,7 @@ class DashType(models.Model):
 class Dashboard(models.Model):
     uid = models.CharField(unique=True, max_length=128)
     name = models.CharField(max_length=255)
-    url = models.URLField()
+    url = models.URLField(max_length=2048)
     time_for_check = models.IntegerField(help_text="Время в минутах для проверки дашборда")
 
     def __str__(self):

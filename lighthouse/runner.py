@@ -129,8 +129,7 @@ def run_lighthouse(
             "si_s": round(si / 1000, 2) if si is not None else None,
             "lcp_ms": lcp,
             "lcp_s": round(lcp / 1000, 2) if lcp is not None else None,
-            "cls": cls,
-            "raw_audits": data["audits"],
+            "cls": cls
         }
 
         return {

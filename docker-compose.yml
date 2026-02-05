@@ -74,7 +74,6 @@ services:
     shm_size: 1gb
     init: true
     restart: always
-    restart_sec: 5
     command: celery -A config worker -l info --concurrency=2
     volumes:
       - .:/app

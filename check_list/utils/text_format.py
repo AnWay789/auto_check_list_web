@@ -14,8 +14,6 @@ def remove_shielding(modeladmin, request, queryset):
         if obj.description is not None:
             obj.description = re.sub(r"\\([_*[\]()~`>#+\-=|{}.!])", r"\1", obj.description)
         obj.save(update_fields=['description'])
-    return queryset
-
 remove_shielding.short_description = "Удалить экранирование из текстовых полей"
 
 def markdownv2_to_html(text: str) -> str:

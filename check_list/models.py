@@ -29,7 +29,7 @@ class CheckListItem(models.Model):
         related_name='checklist_items'
     )
     description = models.TextField(null=True, blank=True, 
-                                   help_text="Описание задачи для проверки дашборда.\nМожно писать в Telegram MarkdownV2 формате. \n```блок кода``` \n`код` \n*жирный* \n_курсив_ \n__подчёркнутый__ \n~зачёркнутый~ \n[ссылка](http://example.com) \n\n%без форматирования%")
+                                   help_text="Описание задачи для проверки дашборда.\nМожно писать в Telegram MarkdownV2 формате. \n```блок кода``` \n`код` \n*жирный* \n_курсив_ \n__подчёркнутый__ \n~зачёркнутый~ \n[ссылка](http://example.com) \n\n№№без форматирования№№")
     interval = models.ForeignKey(
         IntervalSchedule,
         on_delete=models.SET_NULL,

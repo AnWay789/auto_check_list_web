@@ -17,13 +17,13 @@ def remove_shielding(modeladmin, request, queryset):
 remove_shielding.short_description = "Удалить экранирование из текстовых полей"
 
 def markdownv2_to_html(text: str) -> str:
-    # Сохраняем фрагменты %...% — их не форматируем
+    # Сохраняем фрагменты №...№ — их не форматируем
     placeholders = []
     def save_noformat(match):
         placeholders.append(match.group(1))
         return f"\x00NOFORMAT_{len(placeholders) - 1}\x00"
 
-    text = re.sub(r"%([^%]+)%", save_noformat, text)
+    text = re.sub(r"№№([^%]+)№№", save_noformat, text)
 
     # HTML escape
     text = html.escape(text)

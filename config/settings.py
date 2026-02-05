@@ -18,7 +18,7 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 try:
-    load_dotenv(BASE_DIR.parent / '.env')
+    load_dotenv('../.env')
 except ImportError:
     pass
 

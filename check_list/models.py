@@ -28,7 +28,8 @@ class CheckListItem(models.Model):
         on_delete=models.CASCADE,
         related_name='checklist_items'
     )
-    description = models.TextField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True, 
+                                   help_text="Описание задачи для проверки дашборда.\nМожно писать в Telegram MarkdownV2 формате. \n```блок кода``` \n`код` \n*жирный* \n_курсив_ \n__подчёркнутый__ \n~зачёркнутый~ \n[ссылка](http://example.com) \n\n%без форматирования%")
     interval = models.ForeignKey(
         IntervalSchedule,
         on_delete=models.SET_NULL,
@@ -74,11 +75,11 @@ class CheckListItem(models.Model):
 
 class CheckEvents(models.Model):
     uuid = models.UUIDField(primary_key=True)
-    dash_type = models.ForeignKey(
-        DashType,
-        on_delete=models.SET_NULL,
-        null=True
-    )
+    # dash_type = models.ForeignKey(
+    #     DashType,
+    #     on_delete=models.SET_NULL,
+    #     null=True
+    # )
     dashboard = models.ForeignKey(
         Dashboard,
         on_delete=models.CASCADE,

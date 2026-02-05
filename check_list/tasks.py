@@ -7,6 +7,7 @@ from django.utils import timezone
 from config.settings import DJANGO_EXTERNAL_URL
 from .settings import TELEGRAM_URL, SEND_MESSAGE_ENDPOINT
 
+from check_list.utils.text_format import markdownv2_to_html
 from .models import CheckListItem, CheckEvents
 from .pydantic_models import DashboardModel
 
@@ -46,16 +47,18 @@ def start_send_dashboard_notification():
                     )
                     # Добавляем модель дашборда для отправки
                     # Внешнему миру (телеграм-боту) отдаём hex-значение UUID, т.к. фронтенд работает с такими строками.
-                    dashboards_to_send.append(
-                        DashboardModel(
+                    dash = DashboardModel(
                             event_uuid=event.uuid.hex,
                             dashboard_uid=item.dashboard.uid,
-                            name=item.dashboard.name,
-                            description=item.description,
+                            name=markdownv2_to_html(item.dashboard.name),
+                            description=markdownv2_to_html(item.description) if item.description else "",
                             real_url=item.dashboard.url,
                             fake_url=f"http://{DJANGO_EXTERNAL_URL}/api/to_dashboard/{event.uuid.hex}/",
                             time_for_check=item.dashboard.time_for_check,
                         ).model_dump(mode="json")
+                    logger.info(f"{dash}")
+                    dashboards_to_send.append(
+                        dash
                     )
                     # Обновляем время следующего запуска
                     item.set_next_run()

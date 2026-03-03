@@ -79,3 +79,7 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+
+# Other
+audit.md
+

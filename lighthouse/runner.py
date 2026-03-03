@@ -18,6 +18,7 @@ from tenacity import (
     stop_after_attempt,
     wait_fixed,
 )
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,61 @@ def _safe_metric(audits: dict, key: str) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _get_navigation_timings_playwright(
+    url: str,
+    headers: dict | None,
+    timeout_ms: int = 30000,
+) -> tuple[float | None, float | None]:
+    """
+    Открывает url в Playwright/Chromium и возвращает DNS/TCP тайминги навигации
+    из performance.getEntriesByType('navigation')[0].
+    Возвращает (dns_ms, tcp_ms); при ошибке — (None, None).
+    """
+    try:
+        chrome_path = os.environ.get("CHROME_PATH")
+        launch_options: dict[str, Any] = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+        }
+        if chrome_path:
+            launch_options["executable_path"] = chrome_path
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(**launch_options)
+            try:
+                context = browser.new_context()
+                if headers:
+                    context.set_extra_http_headers(headers)
+                page = context.new_page()
+                page.goto(url, wait_until="load", timeout=timeout_ms)
+                result = page.evaluate(
+                    """() => {
+                    const nav = performance.getEntriesByType('navigation')[0];
+                    if (!nav) return { dns_ms: null, tcp_ms: null };
+                    const dns = nav.domainLookupEnd - nav.domainLookupStart;
+                    const tcp = nav.connectEnd - nav.connectStart;
+                    return {
+                        dns_ms: (dns >= 0 && isFinite(dns)) ? dns : null,
+                        tcp_ms: (tcp >= 0 && isFinite(tcp)) ? tcp : null
+                    };
+                }"""
+                )
+                if not result or not isinstance(result, dict):
+                    return (None, None)
+                dns_ms = result.get("dns_ms")
+                tcp_ms = result.get("tcp_ms")
+                if dns_ms is not None:
+                    dns_ms = float(dns_ms)
+                if tcp_ms is not None:
+                    tcp_ms = float(tcp_ms)
+                return (dns_ms, tcp_ms)
+            finally:
+                browser.close()
+    except Exception as e:
+        logger.warning("Playwright navigation timings failed: %s", e)
+        return (None, None)
 
 
 def _run_once(cmd: list[str], timeout_sec: int) -> dict[str, Any]:
@@ -62,7 +118,7 @@ def run_lighthouse(
 
     Returns:
         dict с ключами: @timestamp, status, metadata, url, metrics, error, message.
-        metrics: {fcp_ms, fcp_s, tbt_ms, tbt_s, si_ms, si_s, lcp_ms, lcp_s, cls}.
+        metrics: {fcp_ms, fcp_s, tbt_ms, tbt_s, si_ms, si_s, lcp_ms, lcp_s, cls, dns_ms, dns_s, tcp_ms, tcp_s}.
     """
     metadata = metadata or {}
     headers = headers or {}
@@ -120,6 +176,7 @@ def run_lighthouse(
         lcp = _safe_metric(data["audits"], "largest-contentful-paint")
         cls = _safe_metric(data["audits"], "cumulative-layout-shift")
 
+        dns_ms, tcp_ms = _get_navigation_timings_playwright(url, headers or None, timeout_ms=30000)
         metrics = {
             "fcp_ms": fcb,
             "fcp_s": round(fcb / 1000, 2) if fcb is not None else None,
@@ -129,11 +186,15 @@ def run_lighthouse(
             "si_s": round(si / 1000, 2) if si is not None else None,
             "lcp_ms": lcp,
             "lcp_s": round(lcp / 1000, 2) if lcp is not None else None,
-            "cls": cls
+            "cls": cls,
+            "dns_ms": dns_ms,
+            "dns_s": round(dns_ms / 1000, 2) if dns_ms is not None else None,
+            "tcp_ms": tcp_ms,
+            "tcp_s": round(tcp_ms / 1000, 2) if tcp_ms is not None else None,
         }
 
         return {
-            "@timestamp": datetime.now(timezone.utc)
+            "dt_created": datetime.now(timezone.utc) #время сбора метрики
             .isoformat(timespec="milliseconds")
             .replace("+00:00", "Z"),
             "status": "success",

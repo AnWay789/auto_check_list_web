@@ -11,17 +11,9 @@ from check_list.utils.text_format import markdownv2_to_html
 from .models import CheckListItem, CheckEvents
 from .pydantic_models import DashboardModel
 
-from check_list.utils.clean_events import clean_old_events  # Импорт утилиты для очистки старых событий что бы она регестрировалсь
+from utils.clean import run_clear_old_task  # Регистрация таски очистки по всем моделям с clear_old
 
 logger = logging.getLogger(__name__)
-
-@app.task
-def debug_task(message: str = "Hello from Celery"):
-    """
-    Простая отладочная задача, которая выводит сообщение в логи worker'а.
-    Эту задачу удобно использовать для проверки работоспособности Celery.
-    """
-    print(f"[{timezone.now()}] Celery debug_task: {message}")
 
 @app.task
 def start_send_dashboard_notification():

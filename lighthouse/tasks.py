@@ -1,21 +1,33 @@
 import logging
-
 import httpx
+from datetime import datetime, timezone as dt_timezone
+
 from config.celery import app
 from django.conf import settings
-from django.utils import timezone
-
+from django.utils import timezone as dj_timezone
 from lighthouse.models import CheckEvents, CheckListItem, Source
 from lighthouse.runner import run_lighthouse
 
 logger = logging.getLogger(__name__)
 
+def _get_current_index() -> str:
+    """Возвращает индекс для ELK, используя шаблон из настроек и текущую дату."""
+    elk_index_template = getattr(settings, "ELK_INDEX_TEMPLATE", "lighthouse-results-%Y-%m-%d")
+    return datetime.now(dt_timezone.utc).strftime(elk_index_template)
 
 def _post_to_elk(result: dict) -> None:
-    """Отправляет один результат Lighthouse в ELK, если настроены ELK_*."""
+    """Отправляет один результат Lighthouse в ELK, если настроены ELK_*.
+    При DEBUG=True отправка в ELK не выполняется."""
+    if getattr(settings, "DEBUG", False):
+        logger.debug("Skip posting to ELK (DEBUG=True)")
+        return
+
     elk_url = getattr(settings, "ELK_URL", None)
     if not elk_url:
         return
+
+    elk_url = elk_url.format(index=_get_current_index())  # Подставляем результат в URL, если там есть плейсхолдеры
+
     elk_user = getattr(settings, "ELK_USER", None)
     elk_password = getattr(settings, "ELK_PASSWORD", None) or getattr(
         settings, "ELK_AUTH", None
@@ -77,7 +89,7 @@ def start_lighthouse_checks():
             CheckListItem.objects.filter(
                 is_active=True,
                 source__is_active=True,
-                start_at__lte=timezone.now(),
+                start_at__lte=dj_timezone.now(),
             ).values_list("id", flat=True)
         )
         for item_id in item_ids:

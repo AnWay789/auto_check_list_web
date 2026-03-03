@@ -1,4 +1,6 @@
 import uuid
+from datetime import timezone as dt_timezone
+
 from django.http import HttpResponseRedirect, Http404
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
@@ -20,9 +22,18 @@ def get_check_list(request, payload: CheckListColback):
     try:
         event_uuid = uuid.UUID(payload.event_uuid)
         event = CheckEvents.objects.get(uuid=event_uuid)
-        event.no_problem = not payload.problem # реверс логики для базы так как фронт отправляет problem=True при проблеме
-        event.save(update_fields=["no_problem"])
+        # Приводим время из колбэка (UTC) к таймзоне приложения (Europe/Moscow)
+        if payload.date_time:
+            dt = payload.date_time
+            if timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, dt_timezone.utc)
+            event.button_click_time = timezone.localtime(dt)
+        else:
+            event.button_click_time = timezone.now()
+        event.no_problem = not payload.problem  # реверс логики для базы: фронт отправляет problem=True при проблеме
+        event.save(update_fields=["button_click_time", "no_problem"])
         logger.info(f"Event {payload.event_uuid} marked as {'problem' if payload.problem else 'ok'}")
+        logger.info(f"Button click time: {payload.date_time}, Problem: {payload.problem}")
         return {"status": "success"}
     except (ValueError, TypeError):
         logger.error(f"Invalid event UUID format: {payload.event_uuid}")

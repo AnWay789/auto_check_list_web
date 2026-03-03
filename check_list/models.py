@@ -7,16 +7,19 @@ from django.db import models
 from django_celery_beat.models import IntervalSchedule, CrontabSchedule
 from celery.schedules import crontab as celery_crontab
 
-logger = Logger(__name__)
+from config.utils.time import default_start_at
 
-class DashType(models.Model):
-    name = models.TextField()
+logger = Logger(__name__)
 
 class Dashboard(models.Model):
     uid = models.CharField(unique=True, max_length=128)
     name = models.CharField(max_length=255)
     url = models.URLField(max_length=1024)
     time_for_check = models.IntegerField(help_text="Время в минутах для проверки дашборда")
+
+    class Meta:
+        verbose_name = "Дашборд чек листа"
+        verbose_name_plural = "Дашборды чек листа"
 
     def __str__(self):
         return self.name
@@ -45,8 +48,14 @@ class CheckListItem(models.Model):
         related_name='check_list_crontab_items',
     )
     is_active = models.BooleanField(default=True)
-    start_at = models.DateTimeField(default=timezone.now()+timedelta(minutes=5),
+    start_at = models.DateTimeField(default=default_start_at,
                                     help_text="Время запуска задачи. (по стандарту через 5 минут от текущего времени)")
+    class Meta:
+        verbose_name = "Элемент расписания чек листа"
+        verbose_name_plural = "Элементы расписания чек листа"
+        permissions = [
+            ("can_switch_active_status", "Может переключать статус активности"),
+        ]
 
     def set_next_run(self):
         """
@@ -87,8 +96,39 @@ class CheckEvents(models.Model):
     )
     event_time = models.DateTimeField(auto_now_add=True)
     check_time = models.DateTimeField(null=True, blank=True)
+    button_click_time = models.DateTimeField(null=True, blank=True)
     no_problem = models.BooleanField(default=True)
     checked = models.BooleanField(default=False)
 
+    class Meta:
+        verbose_name = "История чек листа"
+        verbose_name_plural = "Истории чек листа"
+
+    def event_time_with_seconds(self):
+        if self.event_time is None:
+            return "-"
+        local_dt = timezone.localtime(self.event_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
+
+    def check_time_with_seconds(self):
+        if self.check_time is None:
+            return "-"
+        local_dt = timezone.localtime(self.check_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
+
+    def button_click_time_with_seconds(self):
+        if self.button_click_time is None:
+            return "-"
+        local_dt = timezone.localtime(self.button_click_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
+
     def __str__(self):
         return f"History for {self.dashboard.name} at {self.event_time}"
+
+    def clear_old(self, days: int = 90):
+        """
+        Очищает старые запросы, которые были созданы более days (по дефолту 90) дней назад.
+        """
+        if self.event_time < (timezone.now() - timezone.timedelta(days=days)):
+            self.delete()
+

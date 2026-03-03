@@ -3,8 +3,8 @@ services:
     env_file: ../.env
     image: redis:7-alpine
     container_name: auto_check_list_redis
-#    ports:
-#      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -25,8 +25,8 @@ services:
     #   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-#    ports:
-#      - "5432:5432"
+    # ports:
+    #   - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
       interval: 10s
@@ -78,6 +78,10 @@ services:
     volumes:
       - .:/app
     env_file: ../.env
+    # Резолв внешних хостов (Naumen и др.): если polza.nau.team не резолвится — укажите корпоративный DNS вместо 8.8.8.8
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     # environment:
     #   - DEBUG=${DEBUG:-True}
     #   - SECRET_KEY=${SECRET_KEY:-django-insecure-g)obvw42&a!(e6nt57u8ek162b@rw_n7li!h&c_p$38jj6=9-#}
@@ -138,8 +142,8 @@ services:
       # - DJANGO_CALLBACK_ENDPOINT=${DJANGO_CALLBACK_ENDPOINT}
       # - API_HOST=${API_HOST}
       # - API_PORT=${API_PORT}
-#    ports:
-#      - "8001:8001"
+    # ports:
+    #   - "8001:8001"
     depends_on:
       web:
         condition: service_started

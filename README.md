@@ -80,6 +80,8 @@
    ```bash
    poetry install
    ```
+   Для сбора метрик DNS/TCP в Lighthouse при локальном запуске один раз выполните:
+   `playwright install chromium`.
 
 3. **Активируйте окружение и перейдите в каталог проекта:**
    ```bash
@@ -187,7 +189,7 @@ docker-compose up -d redis db web celery_worker celery_beat
 Краткая последовательность:
 
 1. Redis запущен.
-2. `poetry install` → `poetry shell`.
+2. `poetry install` → `poetry shell`. Для метрик Lighthouse (dns_ms, tcp_ms) один раз: `playwright install chromium`.
 3. При необходимости скопировать и настроить общий `.env` в родительской директории (для PostgreSQL задать `DATABASE_URL`).
 4. `python manage.py migrate` и `python manage.py createsuperuser`.
 5. В трёх терминалах: `runserver`, `celery -A config worker -l info`, `celery -A config beat -l info`.
@@ -198,11 +200,11 @@ docker-compose up -d redis db web celery_worker celery_beat
 
 ## Архитектура
 
-- **Django** — API, админка, модели дашбордов и событий проверки.
-- **Celery** — фоновые и периодические задачи (отправка дашбордов в бота).
-- **Celery Beat** — расписание (используется django-celery-beat, расписание хранится в БД).
+- **Django** — API, админка, модели дашбордов, событий проверки, Redash, Lighthouse, заказов с ошибками (order_errors).
+- **Celery** — фоновые и периодические задачи: отправка дашбордов в бота, обновление запросов Redash, синхронизация заказов с ошибками и отправка в Наумен, запуск Lighthouse.
+- **Celery Beat** — расписание (django-celery-beat, хранится в БД).
 - **Redis** — брокер и backend для Celery.
-- **Telegram-бот** — отдельный сервис: получает дашборды от Django и отправляет их в чат.
+- **Telegram-бот** — отдельный сервис: получает дашборды от Django и отправляет их в чат; по нажатию кнопки шлёт колбэк с результатом проверки и временем нажатия.
 
 ---
 
@@ -212,8 +214,8 @@ docker-compose up -d redis db web celery_worker celery_beat
 
 | Переменная | Описание | По умолчанию (локально) |
 |------------|----------|--------------------------|
-| `DEBUG` | Режим отладки Django | `True` |
-| `SECRET_KEY` | Секретный ключ Django | см. `.env.example` |
+| `DEBUG` | Режим отладки Django; при включении отправка результатов Lighthouse в ELK отключается | `True` |
+| `SECRET_KEY` / `DJANGO_SECRET_KEY` | Секретный ключ Django | см. `.env.example` (в коде используется `DJANGO_SECRET_KEY`) |
 | `ALLOWED_HOSTS` | Разрешённые хосты | `localhost,127.0.0.1` |
 | `DATABASE_URL` | URL БД (PostgreSQL) | не задано → SQLite |
 | `CELERY_BROKER_URL` | Redis для Celery | `redis://localhost:6379/0` |
@@ -224,6 +226,8 @@ docker-compose up -d redis db web celery_worker celery_beat
 | `TELEGRAM_BOT_TOKEN` | Токен бота | — |
 | `TELEGRAM_CHAT_ID` | ID чата для уведомлений | — |
 | `TELEGRAM_PJ_PATH` | Путь к проекту бота (только для Docker) | — |
+| `ELK_INDEX_TEMPLATE` | Шаблон имени индекса ELK (поддерживает strftime, напр. `lighthouse-results-%Y-%m-%d`) | `lighthouse-results-%Y-%m-%d` |
+| `REDASH_*`, `NAUMEN_*` | Опционально: ключи API Redash и Naumen для синхронизации заказов с ошибками и отправки в Наумен | — |
 
 ---
 
@@ -284,9 +288,12 @@ Django отправляет POST-запрос боту:
 ```json
 {
   "event_uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "problem": false
+  "problem": false,
+  "date_time": "2026-03-03T12:00:00Z"
 }
 ```
+
+Поле `date_time` (ISO 8601, UTC) — время нажатия кнопки в боте; при отсутствии подставляется текущее время на сервере.
 
 **Успешный ответ:** `{"status": "success"}`  
 **Ошибка:** `{"status": "error", "message": "..."}`
@@ -306,7 +313,7 @@ Django отправляет POST-запрос боту:
 
 - **Dashboard** — `uid`, `name`, `url`, `time_for_check`.
 - **CheckListItem** — привязка к дашборду, `description`, `interval` (django-celery-beat), `is_active`, `start_at`.
-- **CheckEvents** — `uuid`, `dashboard`, `event_time`, `check_time`, `checked`, `problem` (из callback).
+- **CheckEvents** — `uuid`, `dashboard`, `event_time`, `check_time`, `button_click_time`, `no_problem`, `checked`. Время в БД хранится в UTC; в колбэке от бота передаётся `date_time` (UTC) и приводится к таймзоне приложения.
 
 ### Задачи Celery
 
@@ -335,9 +342,12 @@ debug_task.delay("Test message from Django shell")
 
 В админке доступны:
 
-- **Dashboards** — дашборды
-- **Check List Items** — элементы чек-листа
-- **Check Events** — события проверок
+- **Dashboards** — дашборды чек-листа
+- **Check List Items** — элементы чек-листа (расписание проверок)
+- **Check Events** — события проверок (время события, нажатия кнопки, перехода по ссылке; экспорт в Excel)
+- **Order errors** — заказы с ошибками (синхронизация с Redash, отправка в Наумен)
+- **Redash** — дашборды Redash, SQL-запросы, запущенные запросы
+- **Lighthouse** — источники и расписание проверок Lighthouse
 - **Periodic tasks** — периодические задачи Celery (django-celery-beat)
 
-Настройки Telegram в коде: `check_list/settings.py` — `TELEGRAM_URL`, `SEND_MESSAGE_ENDPOINT`.
+Настройки Telegram: `check_list/settings.py` — `TELEGRAM_URL`, `SEND_MESSAGE_ENDPOINT`.

@@ -7,7 +7,13 @@ from django.db import models
 from django_celery_beat.models import IntervalSchedule, CrontabSchedule
 from celery.schedules import crontab as celery_crontab
 
+from config.utils.time import default_start_at
+
 logger = logging.getLogger(__name__)
+
+
+def default_source_metadata():
+    return {"project": "not set", "page_type": "not set"}
 
 
 class Source(models.Model):
@@ -16,21 +22,20 @@ class Source(models.Model):
     headers = models.JSONField(default=None, blank=True, null=True,
                                help_text=("Произвольные заголовки для запроса Lighthouse."
                                                                  "Формат: {\"Header-Name\": \"Header Value\"}"
-                                                                 "Ecсли заголовки не нужны, оставить null."))
+                                                                 "Ecли заголовки не нужны, оставить null."))
     metadata = models.JSONField(
         blank=True,
         null=True,
-        default=(
-            {
-                "project": "not set",
-                "page_type": "not set"
-            }
-        ),
+        default=default_source_metadata,
         help_text=("Произвольные метаданные для ELK (например project, page_type)."
                    "Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}")
     )
     description = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Источник Lighthouse"
+        verbose_name_plural = "Источники Lighthouse"
 
     def __str__(self):
         return self.name
@@ -60,8 +65,12 @@ class CheckListItem(models.Model):
                     "Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     is_active = models.BooleanField(default=True)
-    start_at = models.DateTimeField(default=timezone.now()+timedelta(minutes=5),
+    start_at = models.DateTimeField(default=default_start_at,
                                     help_text="Время запуска задачи. (по стандарту через 5 минут от текущего времени)")
+
+    class Meta:
+        verbose_name = "Элемент расписания Lighthouse"
+        verbose_name_plural = "Элементы расписания Lighthouse"
 
     def set_next_run(self):
         """
@@ -100,9 +109,20 @@ class CheckEvents(models.Model):
     metrics = models.JSONField(
         blank=True,
         null=True,
-        help_text="Метрики Lighthouse: fcp_ms, fcp_s, tbt_ms, tbt_s, si_ms, si_s, lcp_ms, lcp_s, cls.",
+        help_text="Метрики Lighthouse: fcp_ms, fcp_s, tbt_ms, tbt_s, si_ms, si_s, lcp_ms, lcp_s, cls, dns_ms, dns_s, tcp_ms, tcp_s.",
     )
     error_message = models.TextField(blank=True, null=True)
 
+    class Meta:
+        verbose_name = "История Lighthouse"
+        verbose_name_plural = "Истории Lighthouse"
+
     def __str__(self):
         return f"History for {self.source.name} at {self.event_time}"
+
+    def clear_old(self, days: int = 2):
+        """
+        Очищает старые запросы, которые были созданы более days (по дефолту 2) дней назад.
+        """
+        if self.event_time < (timezone.now() - timezone.timedelta(days=days)):
+            self.delete()

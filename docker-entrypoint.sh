@@ -21,8 +21,8 @@ if [ "$RUN_MIGRATIONS" = "1" ]; then
     python manage.py migrate
 fi
 
-# Сбор статики (если нужно)
-# python manage.py collectstatic --noinput
+# Сбор статики для админки (WhiteNoise при DEBUG=False)
+python manage.py collectstatic --noinput
 
 # Создаем суперпользователя для админки (встроенная команда Django корректно хеширует пароль)
 echo "Проверка суперпользователя..."

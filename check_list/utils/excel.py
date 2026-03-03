@@ -15,8 +15,9 @@ def _format_timedelta_hms(td: timedelta) -> str:
     return f"{hours}:{minutes:02d}:{seconds:02d}"
 
 def _timedelta_checking(check_time : datetime | None, button_click_time : datetime | None):
+    """Длительность проверки: от фактического начала (check_time) до нажатия кнопки (button_click_time)."""
     if check_time and button_click_time:
-        result = _format_timedelta_hms(check_time - button_click_time)
+        result = _format_timedelta_hms(button_click_time - check_time)
     else:
         if not check_time:
             result = "На ссылку не нажимали"

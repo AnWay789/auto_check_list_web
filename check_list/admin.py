@@ -11,6 +11,7 @@ class CheckListItemAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'dashboard', 'interval', 'crontab')
     search_fields = ('dashboard', 'description',)
     actions = [switch_active_status, set_start_at_now, remove_shielding]
+    
 
 @admin.register(Dashboard)
 class DashboardAdmin(admin.ModelAdmin):
@@ -26,3 +27,4 @@ class CheckEventsAdmin(admin.ModelAdmin):
     readonly_fields = ('uuid', 'event_time')
     date_hierarchy = 'event_time'
     actions = [export_checkevents_to_excel]
+    ordering = ['-event_time']

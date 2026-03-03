@@ -107,17 +107,20 @@ class CheckEvents(models.Model):
     def event_time_with_seconds(self):
         if self.event_time is None:
             return "-"
-        return self.event_time.strftime("%d.%m.%Y %H:%M:%S")
+        local_dt = timezone.localtime(self.event_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
 
     def check_time_with_seconds(self):
         if self.check_time is None:
             return "-"
-        return self.check_time.strftime("%d.%m.%Y %H:%M:%S")
+        local_dt = timezone.localtime(self.check_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
 
     def button_click_time_with_seconds(self):
         if self.button_click_time is None:
             return "-"
-        return self.button_click_time.strftime("%d.%m.%Y %H:%M:%S")
+        local_dt = timezone.localtime(self.button_click_time)
+        return local_dt.strftime("%d.%m.%Y %H:%M:%S")
 
     def __str__(self):
         return f"History for {self.dashboard.name} at {self.event_time}"

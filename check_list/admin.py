@@ -20,7 +20,7 @@ class DashboardAdmin(admin.ModelAdmin):
 
 @admin.register(CheckEvents)
 class CheckEventsAdmin(admin.ModelAdmin):
-    list_display = ('uuid', 'dashboard', 'event_time', 'check_time', 'checked', 'no_problem')
+    list_display = ('uuid', 'dashboard', 'event_time_with_seconds', 'check_time_with_seconds', 'button_click_time_with_seconds', 'checked', 'no_problem')
     list_filter = ('checked', 'no_problem', 'event_time')
     search_fields = ('dashboard__name', 'dashboard__uid', 'uuid')
     readonly_fields = ('uuid', 'event_time')

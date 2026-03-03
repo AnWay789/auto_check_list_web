@@ -36,6 +36,9 @@ DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
+# Default primary key type for models without explicit primary_key (Django 3.2+)
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -51,10 +54,13 @@ INSTALLED_APPS = [
     'check_list',
     'api',
     'lighthouse',
+    'redash',
+    'order_errors',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -147,6 +153,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DJANGO_URL = os.environ.get("DJANGO_URL", "localhost:8000")
 # Внешний URL для генерации ссылок, доступных из браузера (для fake_url)
@@ -165,8 +172,18 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Lighthouse → ELK (опционально): если заданы, результаты Lighthouse отправляются в ELK
 ELK_URL = os.environ.get("ELK_URL")  # например https://10.222.0.3:9200/runner-vm-bots-logs/_doc/
+ELK_INDEX_TEMPLATE = os.environ.get("ELK_INDEX_TEMPLATE", "lighthouse-results-%Y-%m-%d")  # шаблон для индекса, поддерживает strftime
 ELK_USER = os.environ.get("ELK_USER")
 ELK_PASSWORD = os.environ.get("ELK_PASSWORD")
 ELK_AUTH = os.environ.get("ELK_AUTH")  # пароль при использовании ELK_USER по умолчанию
 ELK_VERIFY_SSL = os.environ.get("ELK_VERIFY_SSL", "false").lower() == "true"
 
+# Redash configuration
+REDASH_API_KEY = os.environ.get("REDASH_API_KEY")
+REDASH_BASE_URL = os.environ.get("REDASH_BASE_URL")
+
+# Naumen configuration
+NAUMEN_BASE_URL = os.environ.get("NAUMEN_BASE_URL")
+NAUMEN_PROJECT_ID = os.environ.get("NAUMEN_PROJECT_ID")
+NAUMEN_AUTH_NAME = os.environ.get("NAUMEN_AUTH_NAME")
+NAUMEN_AUTH_PASSWORD = os.environ.get("NAUMEN_AUTH_PASSWORD")

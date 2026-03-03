@@ -80,6 +80,8 @@
    ```bash
    poetry install
    ```
+   Для сбора метрик DNS/TCP в Lighthouse при локальном запуске один раз выполните:
+   `playwright install chromium`.
 
 3. **Активируйте окружение и перейдите в каталог проекта:**
    ```bash
@@ -187,7 +189,7 @@ docker-compose up -d redis db web celery_worker celery_beat
 Краткая последовательность:
 
 1. Redis запущен.
-2. `poetry install` → `poetry shell`.
+2. `poetry install` → `poetry shell`. Для метрик Lighthouse (dns_ms, tcp_ms) один раз: `playwright install chromium`.
 3. При необходимости скопировать и настроить общий `.env` в родительской директории (для PostgreSQL задать `DATABASE_URL`).
 4. `python manage.py migrate` и `python manage.py createsuperuser`.
 5. В трёх терминалах: `runserver`, `celery -A config worker -l info`, `celery -A config beat -l info`.
@@ -212,7 +214,7 @@ docker-compose up -d redis db web celery_worker celery_beat
 
 | Переменная | Описание | По умолчанию (локально) |
 |------------|----------|--------------------------|
-| `DEBUG` | Режим отладки Django | `True` |
+| `DEBUG` | Режим отладки Django; при включении отправка результатов Lighthouse в ELK отключается | `True` |
 | `SECRET_KEY` | Секретный ключ Django | см. `.env.example` |
 | `ALLOWED_HOSTS` | Разрешённые хосты | `localhost,127.0.0.1` |
 | `DATABASE_URL` | URL БД (PostgreSQL) | не задано → SQLite |

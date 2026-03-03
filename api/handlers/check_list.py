@@ -20,9 +20,11 @@ def get_check_list(request, payload: CheckListColback):
     try:
         event_uuid = uuid.UUID(payload.event_uuid)
         event = CheckEvents.objects.get(uuid=event_uuid)
+        event.button_click_time = payload.date_time if payload.date_time else timezone.now()
         event.no_problem = not payload.problem # реверс логики для базы так как фронт отправляет problem=True при проблеме
-        event.save(update_fields=["no_problem"])
+        event.save(update_fields=["button_click_time", "no_problem"])
         logger.info(f"Event {payload.event_uuid} marked as {'problem' if payload.problem else 'ok'}")
+        logger.info(f"Button click time: {event.button_click_time}, No problem: {event.no_problem}")
         return {"status": "success"}
     except (ValueError, TypeError):
         logger.error(f"Invalid event UUID format: {payload.event_uuid}")

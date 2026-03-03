@@ -10,4 +10,4 @@ class CheckListColback(Schema):
 
     event_uuid: str  # hex-строка UUID
     problem: bool
-    date_time: datetime
+    date_time: datetime | None = None

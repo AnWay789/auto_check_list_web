@@ -39,16 +39,19 @@ def export_checkevents_to_excel(modeladmin, request, queryset):
         headers = ["UUID проверки", "UID дашборда", "Имя дашборда", "Дата и время проверки", "Фактическая дата и время проверки", "Время нажатия кнопки", "Длительность проверки", "Проверено", "Есть проблема"]
         ws.append(headers)
 
-        # Данные
+        # Данные (время переводим в таймзону приложения для отображения и расчёта длительности)
         for ev in queryset.select_related("dashboard"):
+            local_event_time = timezone.localtime(ev.event_time) if ev.event_time else None
+            local_check_time = timezone.localtime(ev.check_time) if ev.check_time else None
+            local_button_click_time = timezone.localtime(ev.button_click_time) if ev.button_click_time else None
             ws.append([
                 str(ev.uuid),
                 ev.dashboard.uid,
                 ev.dashboard.name,
-                ev.event_time.strftime("%Y-%m-%d %H:%M:%S"),
-                ev.check_time.strftime("%Y-%m-%d %H:%M:%S") if ev.check_time else "-",
-                ev.button_click_time.strftime("%Y-%m-%d %H:%M:%S"),
-                _timedelta_checking(ev.check_time, ev.button_click_time),
+                local_event_time.strftime("%Y-%m-%d %H:%M:%S") if local_event_time else "-",
+                local_check_time.strftime("%Y-%m-%d %H:%M:%S") if local_check_time else "-",
+                local_button_click_time.strftime("%Y-%m-%d %H:%M:%S") if local_button_click_time else "-",
+                _timedelta_checking(local_check_time, local_button_click_time),
                 "да" if ev.checked else "нет",
                 "нет" if ev.no_problem else "да",
             ])

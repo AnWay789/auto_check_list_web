@@ -29,7 +29,7 @@ def get_check_list(request, payload: CheckListColback):
                 dt = timezone.make_aware(dt, dt_timezone.utc)
             event.button_click_time = timezone.localtime(dt)
         else:
-            event.button_click_time = timezone.now()
+            event.button_click_time = None # при отсутствии времени считаем, что кнопка не нажата
         event.no_problem = not payload.problem  # реверс логики для базы: фронт отправляет problem=True при проблеме
         event.save(update_fields=["button_click_time", "no_problem"])
         logger.info(f"Event {payload.event_uuid} marked as {'problem' if payload.problem else 'ok'}")

@@ -19,10 +19,9 @@ echo "Redis is ready!"
 if [ "$RUN_MIGRATIONS" = "1" ]; then
     echo "Running migrations..."
     python manage.py migrate
+    echo "Collecting static files..."
+    python manage.py collectstatic --noinput
 fi
-
-# Сбор статики для админки (WhiteNoise при DEBUG=False)
-python manage.py collectstatic --noinput
 
 # Создаем суперпользователя для админки (встроенная команда Django корректно хеширует пароль)
 echo "Проверка суперпользователя..."

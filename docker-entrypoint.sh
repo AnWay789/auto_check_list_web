@@ -18,7 +18,6 @@ echo "Redis is ready!"
 # Выполнение миграций
 if [ "$RUN_MIGRATIONS" = "1" ]; then
     echo "Running migrations..."
-    python manage.py migrate check_list --fake
     python manage.py migrate
 fi
 

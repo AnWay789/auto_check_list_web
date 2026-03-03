@@ -66,6 +66,7 @@ htmlcov/
 ._*
 Thumbs.db
 ehthumbs.db
+core*
 
 # mypy
 .mypy_cache/

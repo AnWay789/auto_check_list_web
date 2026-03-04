@@ -21,7 +21,7 @@ VALIDATION_ERROR = "Заказ с таким id уже существует"
 
 STORE_RECOMMENDED_ACTIONS_WITH_STORE = "Переоформить заказ на ближайшую к этой ({store_address}) точку доставки"
 STORE_RECOMMENDED_ACTIONS_WITHOUT_STORE = "Просьба выяснить на какую точку пользователь пытался оформить заказ и переоформить его на ближайшую к ней точку доставки"
-PRICE_RECOMMENDED_ACTION = "Просьба переоформить заказ на ближайшую к этой ({store_address}) точку доставки и при необходимости (если остатков нет) подобрать аналог товару и"
+PRICE_RECOMMENDED_ACTION = "Просьба переоформить заказ на ближайшую к этой ({store_address}) точку доставки и при необходимости (если остатков нет) подобрать аналог товару"
 PRICE_RECOMMENDED_ACTION_WITHOUT_STORE = "Просьба переоформить заказ и при необходимости (если остатков нет) подобрать аналог товару и"
 QUANTITY_RECOMMENDED_ACTIONS_WITH_PRODUCT = "Требуется подобрать аналог товару {product} и переоформить заказ"
 QUANTITY_RECOMMENDED_ACTIONS_WITHOUT_PRODUCT = "Требуется подобрать аналог товару и переоформить заказ"
@@ -206,7 +206,7 @@ class RedashNaumenSync:
                 state="adjourned",
                 scheduledTime=now_plus_5min,
                 comment=(
-                    f"___Дата 400 ошибки: {order_date_str}"
+                    f"___Дата 400 ошибки: {timezone.localtime(order_date_str).strftime("%d.%m.%Y %H:%M")}"
                     f"___Причина ошибки: {order.error}"
                 ),
                 phoneNumbers=[PhoneNumber(number=order.customer_phone, code="MOBILE")],

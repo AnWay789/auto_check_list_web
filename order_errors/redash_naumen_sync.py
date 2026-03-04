@@ -200,13 +200,16 @@ class RedashNaumenSync:
         now_plus_5min = timezone.now() + timedelta(minutes=5)
         order_requests = []
         for order in orders:
-            order_date_str = order.order_date.strftime("%d.%m.%Y %H:%M") if order.order_date else "—"        
+            order_date_display = (
+                timezone.localtime(order.order_date).strftime("%d.%m.%Y %H:%M")
+                if order.order_date else "—"
+            )
             order_requests.append(NaumenErrorRequest(
                 title=f"{order.number}",
                 state="adjourned",
                 scheduledTime=now_plus_5min,
                 comment=(
-                    f"___Дата 400 ошибки: {timezone.localtime(order_date_str).strftime("%d.%m.%Y %H:%M")}"
+                    f"___Дата 400 ошибки: {order_date_display}"
                     f"___Причина ошибки: {order.error}"
                 ),
                 phoneNumbers=[PhoneNumber(number=order.customer_phone, code="MOBILE")],

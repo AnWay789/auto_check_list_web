@@ -202,7 +202,7 @@ class RedashNaumenSync:
         В scheduledTime и Data_zakaza передаётся текущее время + 1 час (Naumen не принимает дату в прошлом).
         Реальная дата заказа указывается в комментарии.
         """
-        orders = list(OrderErrorModel.objects.filter(is_send_to_naumen=False).all())
+        orders = list(OrderErrorModel.objects.filter(is_send_to_naumen=False, can_send_to_naumen=True).all())
         order_numbers = [o.number for o in orders]
 
         now_plus_5min = timezone.now() + timedelta(minutes=5)

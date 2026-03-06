@@ -46,6 +46,9 @@ def start_send_dashboard_notification():
                             description=markdownv2_to_html(item.description) if item.description else "",
                             real_url=item.dashboard.url,
                             fake_url=f"http://{DJANGO_EXTERNAL_URL}/api/to_dashboard/{event.uuid.hex}/",
+                            # TODO: Сейчас время для проверки борда считается на стороне фронтенда, нужно 
+                            # переделать что бы это считалось на стороне сервера. 
+                            # 
                             time_for_check=item.dashboard.time_for_check,
                         ).model_dump(mode="json")
                     logger.info(f"{dash}")
@@ -54,19 +57,19 @@ def start_send_dashboard_notification():
                     )
                     # Обновляем время следующего запуска
                     item.set_next_run()
-                    logger.info(f"Prepared dashboard {item.dashboard.name} (event {event.uuid}) for notification")
+                    logger.info(f"Подготовлен дашборд {item.dashboard.name} (event {event.uuid}) для отправки")
                 except Exception as e:
-                    logger.error(f"Error processing checklist item {item.id}: {str(e)}")
+                    logger.error(f"Ошибка при обработке элемента чек-листа {item.id}: {str(e)}")
                     continue
 
         if dashboards_to_send:
             # Вызываем задачу отправки дашбордов
             send_dashboard_notification.delay(dashboards_to_send)
-            logger.info(f"Scheduled notification for {len(dashboards_to_send)} dashboard(s)")
+            logger.info(f"Запланирована отправка {len(dashboards_to_send)} дашбордов")
         else:
-            logger.debug("No dashboards to send")
+            logger.debug("Нет дашбордов для отправки")
     except Exception as e:
-        logger.error(f"Error in start_send_dashboard_notification: {str(e)}", exc_info=True)       
+        logger.error(f"Ошибка в start_send_dashboard_notification: {str(e)}", exc_info=True)
 
 @app.task
 def send_dashboard_notification(dashboards_to_send: list[dict]):
@@ -76,24 +79,24 @@ def send_dashboard_notification(dashboards_to_send: list[dict]):
     """
     url = f"http://{TELEGRAM_URL}{SEND_MESSAGE_ENDPOINT}"
     try:
-        logger.info(f"Sending {len(dashboards_to_send)} dashboard(s) to telegram bot at {url}")
+        logger.info(f"Отправка {len(dashboards_to_send)} дашбордов в телеграм бот по адресу {url}")
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
                 url=url,
                 json={"dashboards": dashboards_to_send}
             )
             response.raise_for_status()
-            logger.info(f"Successfully sent dashboards to telegram bot. Response: {response.status_code}")
+            logger.info(f"Дашборды успешно отправлены в телеграм бот. Ответ: {response.status_code}")
     except httpx.TimeoutException:
-        logger.error(f"Timeout while sending dashboards to telegram bot at {url}")
+        logger.error(f"Таймаут при отправке дашбордов в телеграм бот по адресу {url}")
         raise
     except httpx.ConnectError as e:
-        logger.error(f"Connection error while sending dashboards to telegram bot at {url}: {str(e)}")
+        logger.error(f"Ошибка соединения при отправке дашбордов в телеграм бот по адресу {url}: {str(e)}")
         raise
     except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error {e.response.status_code} while sending dashboards to telegram bot: {e.response.text}")
+        logger.error(f"Ошибка HTTP {e.response.status_code} при отправке дашбордов в телеграм бот: {e.response.text}")
         raise
     except Exception as e:
-        logger.error(f"Unexpected error while sending dashboards to telegram bot: {str(e)}", exc_info=True)
+        logger.error(f"Непредвиденная ошибка при отправке дашбордов в телеграм бот: {str(e)}", exc_info=True)
         raise
 

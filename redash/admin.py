@@ -22,5 +22,5 @@ class RedashDashboardAdmin(admin.ModelAdmin):
 
 @admin.register(RedashRequests)
 class RedashRequestsAdmin(admin.ModelAdmin):
-    list_display = ('redash_sql', 'dashboard', 'status', 'date_request')
+    list_display = ('cource', 'status', 'date_request')
     list_filter = ('redash_sql', 'dashboard', 'status')

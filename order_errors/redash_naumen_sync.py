@@ -7,7 +7,7 @@ from django.utils import timezone
 from redash.models import RedashRequests
 
 from order_errors.schemas.order_error import RawOrderError, OrderError
-from order_errors.models import OrderError as OrderErrorModel
+from order_errors.models import OrderError as OrderErrorModel, Filters
 
 from api.schemas.naumen.naumen_schema import PhoneNumber, CustomForm, CustomFormDefault, CustomForm, NaumenErrorRequest
 from api.wrappers.naumen import NaumenClient
@@ -33,29 +33,30 @@ class RedashNaumenSync:
 
     def _collect_orders(self, dashboard_id: int) -> dict[str, list[RawOrderError]]:
         # Получаем запросы из Redash
-        results_requests = RedashRequests.objects.filter(dashboard_id=dashboard_id, 
+        request = RedashRequests.objects.filter(dashboard_id=dashboard_id, 
                                                          status__is_final=True, 
-                                                         status__is_success=True).order_by('-date_request').all()
+                                                         status__is_success=True).order_by('-date_request').first()
+        
+        if not request:
+            return {}
+        
+        try:
+            rows = request.result.get('query_result', {}).get('data', {}).get('rows', [])
+        except (AttributeError, TypeError):
+            logger.warning("Неожиданная структура result у запроса Redash request_id=%s", getattr(request, 'id', None))
+            return {}
         
         orders = {}
-
-        for request in results_requests:
-            if not request.result:
-                continue
+        for row in rows:
             try:
-                rows = request.result.get('query_result', {}).get('data', {}).get('rows', [])
-            except (AttributeError, TypeError):
-                logger.warning("Неожиданная структура result у запроса Redash request_id=%s", getattr(request, 'id', None))
+                order_error = RawOrderError.model_validate(row)
+            except Exception as e:
+                logger.warning("Ошибка валидации строки из Redash: %s", e, exc_info=True)
                 continue
-            for row in rows:
-                try:
-                    order_error = RawOrderError.model_validate(row)
-                except Exception as e:
-                    logger.warning("Ошибка валидации строки из Redash: %s", e, exc_info=True)
-                    continue
-                if order_error.number not in orders:
-                    orders[order_error.number] = []
-                orders[order_error.number].append(order_error)
+            if order_error.number not in orders:
+                orders[order_error.number] = []
+            orders[order_error.number].append(order_error)
+        
         logger.info("Собрано заказов из Redash (dashboard_id=%s): %s", dashboard_id, len(orders))
         return orders
 
@@ -117,7 +118,7 @@ class RedashNaumenSync:
                     f"В ECOM: {raw_order.ecom_stock} "
                     f"Статус: {status},"
                 )
-                order_total += raw_order.product_price
+                order_total += (raw_order.product_price * raw_order.ordered)
 
             # Собираем рекомендацию по действию для КЦ
             recommended_action: str | None = None
@@ -160,7 +161,13 @@ class RedashNaumenSync:
         return clear_orders
 
     def _save_orders(self, clear_orders: dict[str, OrderError]) -> None:
+        firlters = Filters.objects.all()
         for order_error in clear_orders.values():
+            can_send_to_naumen = True
+            for filter in firlters:
+                if not filter.checking_for_filter(order_error):
+                    can_send_to_naumen = False
+                    break
             OrderErrorModel.objects.create(
                 number=int(order_error.number),
                 order_date=order_error.order_date,
@@ -177,6 +184,7 @@ class RedashNaumenSync:
 
                 error=order_error.error,
                 recommended_action=order_error.recommended_action,
+                can_send_to_naumen=can_send_to_naumen,
             )
 
     def get_and_save_orders(self, dashboard_id: int) -> int:

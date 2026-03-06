@@ -212,6 +212,13 @@ class RedashRequests(models.Model):
         if self.redash_sql:
             return f"ID: {self.job_id}, Dashboard: {self.redash_sql}, Error: {self.error}, Query Result ID: {self.query_result_id}"
     
+    def cource(self):
+        if self.dashboard:
+            return f"Dashboard: {self.dashboard.name}"
+        if self.redash_sql:
+            return f"SQL: {self.redash_sql.description}"
+        return f"Unknown source"
+    
     def clear_old(self, days: int = 2):
         """
         Очищает старые запросы, которые были созданы более days (по дефолту 2) дней назад.

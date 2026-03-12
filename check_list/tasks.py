@@ -45,7 +45,7 @@ def start_send_dashboard_notification():
                             name=markdownv2_to_html(item.dashboard.name),
                             description=markdownv2_to_html(item.description) if item.description else "",
                             real_url=item.dashboard.url,
-                            fake_url=f"http://{DJANGO_EXTERNAL_URL}/api/to_dashboard/{event.uuid.hex}/",
+                            fake_url=f"http://{DJANGO_EXTERNAL_URL}/acl_api/to_dashboard/{event.uuid.hex}/",
                             # TODO: Сейчас время для проверки борда считается на стороне фронтенда, нужно 
                             # переделать что бы это считалось на стороне сервера. 
                             # 

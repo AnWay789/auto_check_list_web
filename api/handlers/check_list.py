@@ -6,14 +6,14 @@ from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
 import logging
 
-from ..api_app import api
+from ..api_app import acl_api
 from ..schemas.check_list_colback import CheckListColback
 from check_list.models import Dashboard, CheckListItem, CheckEvents
 
 logger = logging.getLogger(__name__)
 
 
-@api.post("/dashbord_colback/")
+@acl_api.post("/dashbord_colback/")
 def get_check_list(request, payload: CheckListColback):
     """
     Обработка колбэка от фронтенда.
@@ -46,7 +46,7 @@ def get_check_list(request, payload: CheckListColback):
         return {"status": "error", "message": "Internal server error"}, 500
 
 
-@api.get("/to_dashboard/{event_uuid}/")
+@acl_api.get("/to_dashboard/{event_uuid}/")
 def to_dashboard(request, event_uuid: str):
     """
     Фронтенд/переход по ссылке использует hex-строку UUID.

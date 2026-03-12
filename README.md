@@ -351,3 +351,201 @@ debug_task.delay("Test message from Django shell")
 - **Periodic tasks** — периодические задачи Celery (django-celery-beat)
 
 Настройки Telegram: `check_list/settings.py` — `TELEGRAM_URL`, `SEND_MESSAGE_ENDPOINT`.
+
+---
+
+## HTTP API
+
+### NinjaAPI инстансы
+
+- `acl_api` — основной API для чек-листа и интеграции с Telegram-ботом.
+- `oe_api` — API для работы с заказами с 400‑ми ошибками.
+
+В `[config/urls.py](auto_check_list/config/urls.py)`:
+
+```python
+from api.api_app import acl_api, oe_api
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/", acl_api.urls),
+    path("oe_api/", oe_api.urls),
+]
+```
+
+Итоговые базовые URL:
+
+- `acl_api`: `http://{DJANGO_URL}/api/`
+- `oe_api`: `http://{DJANGO_URL}/oe_api/`
+
+### Эндпоинты `acl_api`
+
+#### 1. Callback от Telegram-бота
+
+```python
+@acl_api.post("/dashbord_colback/")
+def get_check_list(request, payload: CheckListColback)
+```
+
+- **URL**: `POST http://{DJANGO_URL}/api/dashbord_colback/`
+- **Тело запроса**:
+
+```json
+{
+  "event_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "problem": false,
+  "date_time": "2026-03-03T12:00:00Z"
+}
+```
+
+- **Ответы**:
+  - `200 {"status": "success"}` — колбэк принят, событие обновлено.
+  - `400 {"status": "error", "message": "Invalid event UUID"}` — неверный UUID.
+  - `404 {"status": "error", "message": "Event not found"}` — событие не найдено.
+  - `500 {"status": "error", "message": "Internal server error"}` — непредвиденная ошибка.
+
+#### 2. Переход на дашборд по fake_url
+
+```python
+@acl_api.get("/to_dashboard/{event_uuid}/")
+def to_dashboard(request, event_uuid: str)
+```
+
+- **URL**: `GET http://{DJANGO_URL}/api/to_dashboard/{event_uuid}/`
+- Поведение:
+  - Помечает событие как просмотренное (`checked = True`, `check_time = now()`).
+  - Делает `302`‑редирект на URL из `event.dashboard.url`.
+- Ошибки:
+  - `Http404("Invalid event UUID")` — неверный формат UUID.
+  - `Http404("Event not found")` — событие не найдено.
+  - `500 {"status": "error", "message": "Internal server error"}` — логируем ошибку и возвращаем JSON.
+
+### Эндпоинты `oe_api` (заказы с 400‑ми ошибками)
+
+Хэндлеры определены в `[api/handlers/order_error.py](auto_check_list/api/handlers/order_error.py)`.
+
+#### 1. Заказ переоформлён
+
+```python
+@oe_api.patch("/order_error/{number}/reissue/")
+def patch_order_error_reissue(request, number: int)
+```
+
+- **URL**: `PATCH http://{DJANGO_URL}/oe_api/order_error/{number}/reissue/`
+- **Пример**:
+
+```bash
+curl -X PATCH http://localhost:8000/oe_api/order_error/1120817796/reissue/
+```
+
+- Поведение:
+  - Ищет запись `OrderError` по полю `number`.
+  - Устанавливает `has_been_reissued = True`.
+  - Сохраняет запись.
+- Ответы:
+  - `200 {"status": "success"}` — успешное обновление.
+  - `404 {"status": "error", "message": "Order not found"}` — заказ не найден.
+
+#### 2. Заказ не был переоформлён
+
+```python
+@oe_api.patch("/order_error/{number}/not_reissue/")
+def patch_order_error_not_reissue(request, number: int)
+```
+
+- **URL**: `PATCH http://{DJANGO_URL}/oe_api/order_error/{number}/not_reissue/`
+- Поведение:
+  - Аналогично предыдущему эндпоинту, но устанавливает `has_been_reissued = False`.
+- Ответы:
+  - `200 {"status": "success"}`.
+  - `404 {"status": "error", "message": "Order not found"}`.
+
+---
+
+## Работа с 400‑ми ошибками заказов и `RecommendedAction`
+
+### Поток данных 400‑х ошибок
+
+1. **Получение из Redash**  
+   Класс `RedashNaumenSync` в `[order_errors/redash_naumen_sync.py](auto_check_list/order_errors/redash_naumen_sync.py)`:
+
+   - `_collect_orders(dashboard_id)` — берёт из Redash последнюю успешную выборку, валидирует строки через `RawOrderError` (pydantic) и группирует по номеру заказа.
+   - `_filter_existing(raw_orders)` — отбрасывает уже сохранённые заказы, агрегирует по номеру:
+     - `_build_order_error_base(first_item)` — базовый pydantic‑`OrderError`.
+     - `_build_products_and_total(raw_order_items)` — формирует:
+       - человекочитаемые строки позиций `products: list[str]`,
+       - сумму заказа `order_total: float`,
+       - «сырые» данные по товарам `raw_products: list[dict]` (GUID, имя, код, цена, остатки, статус).
+     - заполняет `order_error.products`, `order_error.order_sum`, `order_error.raw_products`.
+     - вызывает `_build_recommended_action(order_error, products)` — построение рекомендации.
+   - `_save_orders(clear_orders)` — сохраняет агрегированные ошибки в Django‑модель `OrderError` (таблица `order_errors_ordererror`), учитывая фильтры `Filters`.
+
+2. **Отправка в Наумен**  
+   - `_get_error_order()` — читает `OrderErrorModel` с `is_send_to_naumen=False` и `can_send_to_naumen=True`, собирает `NaumenErrorRequest` с описанием ошибок и рекомендациями.
+   - `_send_to_naumen()` — отправляет кейсы через `NaumenClient`, помечает заказы как отправленные.
+
+### Модели для 400‑х ошибок
+
+- **`OrderError` (Django)** — `[order_errors/models.py](auto_check_list/order_errors/models.py)`:
+  - Поля: `number`, `order_date`, `customer_name`, `customer_phone`, `rk_name`, `store_address`, `store_id`,
+    `raw_products` (JSON), `products` (текст), `order_sum`, `error`, `recommended_action`,
+    `is_send_to_naumen`, `can_send_to_naumen`, `has_been_reissued`.
+
+- **`OrderError` / `RawOrderError` (pydantic)** — `[order_errors/schemas/order_error.py](auto_check_list/order_errors/schemas/order_error.py)`:
+  - `RawOrderError` описывает «сырые» поля из Redash (`ts`, `pr_guid`, `pr_name`, `pr_code`, `price`, `ordered_qty`, `stock_qty`, `ecom_qty`, `stock_status` и т.д.).
+  - `OrderError` — агрегированное представление заказа для внутренних расчётов (`products`, `raw_products`, `order_sum`, `error`, `recommended_action`).
+
+### `RecommendedAction` — шаблонные рекомендации для КЦ
+
+Модель `[order_errors/models.py](auto_check_list/order_errors/models.py)`:
+
+- Поля:
+  - `triger_field` — какое поле заказа проверяется (`error`, `products`, `order_sum`, `customer_name` и т.п.).
+  - `trigger` — подстрока, при наличии которой правило срабатывает.
+  - `recommended_action` — шаблон текста рекомендации.
+  - `custom_values` — JSON‑словарь с дополнительными значениями для подстановки.
+  - `fail_values` — (если используется) набор значений, при которых подстановка из заказа считается «неуспешной» и используется fallback из `custom_values`.
+
+- Поддерживаемые плейсхолдеры в `recommended_action`:
+
+  - Стандартные поля заказа:  
+    `{number}`, `{customer_name}`, `{customer_phone}`, `{rk_name}`, `{store_address}`, `{store_id}`, `{products}`, `{order_sum}`, `{error}`.
+  - Специальный плейсхолдер **`{product}`**:
+    - Работает для ошибок формата:
+      ```python
+      {"<GUID>": "Заказанное количество превышает допустимый остаток."}
+      ```
+    - Модель берёт GUID из `error`, ищет его в `order.raw_products` по `product_guid` и подставляет `product_name` товара.
+  - Пользовательские переменные из `custom_values`, если заданы.
+
+- Логика подстановки (`RecommendedAction._set_varible_in_recommended_action`):
+
+  1. Для каждого плейсхолдера в шаблоне:
+     - если имя — `product`, вызывается `_get_problem_product_from_error(order)` (анализ `error` и `raw_products`);
+     - иначе сначала берётся одноимённое поле из заказа (`getattr(order, name, None)`),
+       при отсутствии или «неподходящем» значении — значение из `custom_values[name]` (fallback).
+  2. Все найденные значения последовательно заменяют `{name}` в тексте рекомендации.
+
+- Пример шаблона:
+
+  ```text
+  Требуется подобрать аналог товару {product} и переоформить заказ
+  ```
+
+  При ошибке количества и наличии соответствующей позиции в `raw_products` итоговый текст будет, например:
+
+  ```text
+  Требуется подобрать аналог товару Троксерутин гель д/наруж прим 2 % 100 г х1 и переоформить заказ
+  ```
+
+### Как добавить новое правило `RecommendedAction`
+
+1. Откройте админку: `/admin/order_errors/recommendedaction/`.
+2. Создайте новое правило:
+   - `name` / `description` — для себя.
+   - `triger_field` — например, `error`.
+   - `trigger` — подстрока, по которой распознаётся тип ошибки (например, `Заказанное количество превышает допустимый остаток`).
+   - `recommended_action` — текст шаблона с плейсхолдерами (`{product}`, `{store_address}` и т.п.).
+   - `custom_values` — (опционально) JSON с fallback‑значениями для плейсхолдеров.
+   - `is_active = True`.
+3. При следующей синхронизации из Redash `RedashNaumenSync` автоматически применит это правило ко всем подходящим заказам. 

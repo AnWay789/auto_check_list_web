@@ -11,10 +11,11 @@ class OrderError(BaseModel):
     customer_phone: str = Field(alias='customer_phone')
 
     rk_name: str | None = Field(alias='rk_name')
-    store_id: str = Field(alias='store_id')
+    store_id: str | None = Field(alias='store_id', default=None)
     store_address: str | None = Field(alias='store_address')
 
     products: list[str] = Field(default_factory=list)
+    raw_products: list[dict] = Field(default_factory=list)
     order_sum: float = Field(default=0.0)
 
     error: str = Field(alias='error')
@@ -30,12 +31,12 @@ class RawOrderError(BaseModel):
     customer_phone: str = Field(alias='customer_phone', default='')
 
     rk_name: str | None = Field(alias='rk_name', default=None)
-    store_id: str = Field(alias='store_id', default='')
+    store_id: str | None = Field(alias='store_id', default=None)
     store_address: str | None = Field(alias='store_address', default=None)
 
-    product_guid: str = Field(alias='pr_guid')
-    product_name: str = Field(alias='pr_name')
-    product_code: str = Field(alias='pr_code')
+    product_guid: str | None = Field(alias='pr_guid', default=None)
+    product_name: str | None = Field(alias='pr_name', default=None)
+    product_code: str | None = Field(alias='pr_code', default=None)
     product_price: float = Field(alias='price', default=0.0)
 
     error: str = Field(alias='error')

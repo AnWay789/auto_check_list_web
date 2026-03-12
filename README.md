@@ -279,7 +279,7 @@ Django отправляет POST-запрос боту:
 
 Бот отправляет результат проверки в Django:
 
-- **URL**: `http://{DJANGO_URL}/api/dashbord_colback/`
+- **URL**: `http://{DJANGO_URL}/acl_api/dashbord_colback/`
 - **Метод**: `POST`
 - **Content-Type**: `application/json`
 
@@ -300,7 +300,7 @@ Django отправляет POST-запрос боту:
 
 ### Редирект на дашборд (переход по fake_url)
 
-- **URL**: `http://{DJANGO_URL}/api/to_dashboard/{event_uuid}/`
+- **URL**: `http://{DJANGO_URL}/acl_api/to_dashboard/{event_uuid}/`
 - **Метод**: `GET`
 
 Устанавливает `checked = True`, записывает `check_time` и делает редирект на реальный URL дашборда.

@@ -21,6 +21,6 @@ from api.api_app import oe_api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("acl_api/", acl_api.urls),
-    path("oe_api/", oe_api.urls),
+    path("acl_api/", acl_api.urls), # acl - auto check list
+    path("oe_api/", oe_api.urls), # oe - order errors
 ]

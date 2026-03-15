@@ -103,15 +103,27 @@ def _parse_percent_value(value):
     return None
 
 
+def _cell_to_csv_value(value):
+    """Преобразует значение ячейки в строку для CSV."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date) and not isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, float):
+        return str(value) if value == value else ""  # avoid NaN
+    return str(value)
+
+
 def get_uteka_share_data(
     output_path: str | Path,
     raw_output_path: str | Path | None = None,
-) -> dict:
+) -> list[dict]:
     """
-    Скачивает выгрузку долей по регионам Ютека (xlsx), оставляет только данные
-    за текущий день, агрегирует по всем регионам (среднее по AllTypesPercent и
-    ExtendedPickupPercent), сохраняет в CSV одну строку: date, all_types_percent,
-    extended_pickup_percent.
+    Скачивает выгрузку долей по регионам Ютека (xlsx), оставляет только строки,
+    где в колонке Date указана текущая дата. Сохраняет в CSV все столбцы (Date, City,
+    AllTypesPercent, ExtendedPickupPercent) без агрегации.
     Если передан raw_output_path — туда сохраняется исходный xlsx без обработки.
     """
     response = httpx.get(UTEKA_SHARES_XLSX_URL)
@@ -132,43 +144,33 @@ def get_uteka_share_data(
         raise ValueError("В xlsx нет активного листа")
 
     today = date.today()
-    # Колонки: A=1 Date, B=2 City, C=3 AllTypesPercent, D=4 ExtendedPickupPercent
-    col_date, col_city, col_all, col_ext = 1, 2, 3, 4
-    all_vals, ext_vals = [], []
+    rows_iter = ws.iter_rows(min_row=1, max_col=4, values_only=True)
+    header_row = next(rows_iter, None)
+    if not header_row:
+        wb.close()
+        raise ValueError("В xlsx нет строки заголовков")
 
-    for row in ws.iter_rows(min_row=2, max_col=4, values_only=True):
+    # Заголовки: используем как есть или подставляем дефолтные
+    fieldnames = [str(h) if h is not None else f"col_{i}" for i, h in enumerate(header_row[:4])]
+    col_date_index = 0  # первая колонка — дата
+
+    rows_today: list[list[str]] = []
+    for row in rows_iter:
         if len(row) < 4:
             continue
-        row_date = _parse_excel_date(row[col_date - 1])
+        row_date = _parse_excel_date(row[col_date_index])
         if row_date != today:
             continue
-        v_all = _parse_percent_value(row[col_all - 1])
-        v_ext = _parse_percent_value(row[col_ext - 1])
-        if v_all is not None:
-            all_vals.append(v_all)
-        if v_ext is not None:
-            ext_vals.append(v_ext)
+        rows_today.append([_cell_to_csv_value(v) for v in row[:4]])
 
     wb.close()
 
-    all_avg = sum(all_vals) / len(all_vals) if all_vals else None
-    ext_avg = sum(ext_vals) / len(ext_vals) if ext_vals else None
-
-    result = {
-        "date": today.isoformat(),
-        "all_types_percent": round(all_avg, 2) if all_avg is not None else "",
-        "extended_pickup_percent": round(ext_avg, 2) if ext_avg is not None else "",
-    }
-
     with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["date", "all_types_percent", "extended_pickup_percent"],
-        )
-        writer.writeheader()
-        writer.writerow(result)
+        writer = csv.writer(f)
+        writer.writerow(fieldnames)
+        writer.writerows(rows_today)
 
-    return result
+    return [dict(zip(fieldnames, r)) for r in rows_today]
 
 
 def _uteka_export_filename(prefix: str, suffix: str = "csv") -> str:
@@ -198,7 +200,7 @@ def run_uteka_price_task() -> list[dict]:
     max_retries=3,
     autoretry_for=(Exception,),
 )
-def run_uteka_share_task() -> dict:
+def run_uteka_share_task() -> list[dict]:
     """
     Периодическая задача: выгрузка долей по регионам Ютека за текущий день.
     Сохраняет обработанный файл share_DD_MM_YYYY_HH_MM.csv и сырой raw_share_DD_MM_YYYY_HH_MM.xlsx.

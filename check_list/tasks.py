@@ -12,6 +12,7 @@ from .models import CheckListItem, CheckEvents
 from .pydantic_models import DashboardModel
 
 from utils.clean import run_clear_old_task  # Регистрация таски очистки по всем моделям с clear_old
+from utils.uteka.uteka import run_uteka_price_task, run_uteka_share_task  # noqa: F401 — регистрация тасок Ютека
 
 logger = logging.getLogger(__name__)
 

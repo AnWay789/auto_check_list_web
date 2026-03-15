@@ -187,3 +187,12 @@ NAUMEN_BASE_URL = os.environ.get("NAUMEN_BASE_URL")
 NAUMEN_PROJECT_ID = os.environ.get("NAUMEN_PROJECT_ID")
 NAUMEN_AUTH_NAME = os.environ.get("NAUMEN_AUTH_NAME")
 NAUMEN_AUTH_PASSWORD = os.environ.get("NAUMEN_AUTH_PASSWORD")
+
+
+# Uteka configuration (это временные переменные, позже они будут удалены)
+UTEKA_BASE_URL = os.environ.get("UTEKA_BASE_URL", "https://api.uteka.ru")
+UTEKA_API_KEY = os.environ.get("UTEKA_API_KEY")
+UTEKA_SHARES_XLSX_URL = os.environ.get(
+    "UTEKA_SHARES_XLSX_URL",
+    "https://uteka.ru/ext/export/foIT0vn53QmQ76w8kxYbyz1/puls_share.xlsx",
+)

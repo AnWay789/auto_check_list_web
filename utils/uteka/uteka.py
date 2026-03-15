@@ -177,7 +177,11 @@ def _uteka_export_filename(prefix: str, suffix: str = "csv") -> str:
     return f"{prefix}_{now:%d_%m_%Y_%H_%M}.{suffix}"
 
 
-@app.task(name="utils.uteka.run_uteka_price_task")
+@app.task(
+    name="utils.uteka.run_uteka_price_task",
+    max_retries=3,
+    autoretry_for=(Exception,),
+)
 def run_uteka_price_task() -> list[dict]:
     """
     Периодическая задача: выгрузка цен конкурентов Ютека (Москва и МО).
@@ -189,7 +193,11 @@ def run_uteka_price_task() -> list[dict]:
     return get_uteka_price_data(path, raw_output_path=raw_path)
 
 
-@app.task(name="utils.uteka.run_uteka_share_task")
+@app.task(
+    name="utils.uteka.run_uteka_share_task",
+    max_retries=3,
+    autoretry_for=(Exception,),
+)
 def run_uteka_share_task() -> dict:
     """
     Периодическая задача: выгрузка долей по регионам Ютека за текущий день.

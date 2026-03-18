@@ -85,17 +85,18 @@ def start_lighthouse_checks():
     и ставит в очередь по одной задаче на каждый элемент (распараллеливание).
     """
     try:
-        item_ids = list(
+        items = list(
             CheckListItem.objects.filter(
                 is_active=True,
                 source__is_active=True,
                 start_at__lte=dj_timezone.now(),
-            ).values_list("id", flat=True)
+            ).all()
         )
-        for item_id in item_ids:
-            run_lighthouse_for_checklist_item.delay(item_id)
-        if item_ids:
-            logger.info("Scheduled %s lighthouse check task(s)", len(item_ids))
+        for item in items:
+            item.set_next_run()
+            run_lighthouse_for_checklist_item.delay(item.id)
+        if items:
+            logger.info("Scheduled %s lighthouse check task(s)", len(items))
     except Exception as e:
         logger.error(
             "Error in run_scheduled_lighthouse_checks: %s", e, exc_info=True
@@ -131,7 +132,6 @@ def run_lighthouse_for_checklist_item(item_id: int) -> dict | None:
         if getattr(settings, "ELK_URL", None):
             _post_to_elk(result)
 
-        item.set_next_run()
         logger.info(
             "Lighthouse run for checklist item %s (source %s): status=%s",
             item_id,

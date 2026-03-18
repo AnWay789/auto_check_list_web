@@ -34,8 +34,8 @@ class RedashSQLs(models.Model):
     description = models.CharField(max_length=512, blank=True, null=True, help_text="Описание запроса для удобства. Не влияет на выполнение запроса.")
     data_source_id = models.IntegerField()
     parameters = models.JSONField(blank=True, null=True, help_text=("Параметры для запуска запроса (если в нем они есть). Должны быть в формате JSON. "
-                                                                    "Например: {\"Маркетплейс\": \"Озон RFBS\", \"РК\": \"ООО \\\"ПУЛЬС Самара\\\"\"}. "
-                                                                    "Если параметры не нужны, то можно оставить пустым."))
+                                                                    "<br>Например: {\"Маркетплейс\": \"Озон RFBS\", \"РК\": \"ООО \\\"ПУЛЬС Самара\\\"\"}. "
+                                                                    "<br>Если параметры не нужны, то можно оставить пустым."))
     query = models.TextField()
     apply_auto_limit = models.BooleanField(default=True)
 
@@ -112,12 +112,12 @@ class RedashDashboard(models.Model):
     is_active = models.BooleanField(default=True)
 
     params = models.JSONField(blank=True, null=True, help_text=("Параметры для запуска запроса. Должны быть в формате JSON."
-                                                                "Например: {\"Маркетплейс\": \"Озон RFBS\", \"РК\": \"ООО \\\"ПУЛЬС Самара\\\"\"}"
-                                                                "Если параметры не нужны, то можно оставить пустым."))
+                                                                "<br>Например: {\"Маркетплейс\": \"Озон RFBS\", \"РК\": \"ООО \\\"ПУЛЬС Самара\\\"\"}"
+                                                                "<br>Если параметры не нужны, то можно оставить пустым."))
     apply_auto_limit = models.BooleanField(default=True)
     max_age = models.IntegerField(default=0, help_text=("Указывает макс. возраст кэша (API) в секундах."
-                                                        "Если кэш старше, то запрос будет выполнен заново."
-                                                        "0 означает, что кэш не будет использоваться."))
+                                                        "<br>Если кэш старше, то запрос будет выполнен заново."
+                                                        "<br>0 означает, что кэш не будет использоваться."))
     crontab = models.ForeignKey(
         CrontabSchedule,
         on_delete=models.SET_NULL,

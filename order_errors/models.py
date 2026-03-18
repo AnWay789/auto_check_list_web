@@ -16,7 +16,7 @@ class OrderError(models.Model):
     store_address = models.CharField(max_length=512, blank=True, null=True)
     store_id = models.CharField(max_length=64)
 
-    raw_products = models.JSONField(default=list, help_text="Список товаров в формате JSON. Например: [{\"product_guid\": \"1234567890\", \"product_name\": \"Товар 1\", \"product_code\": \"1234567890\", \"product_price\": 100.0}]", blank=True, null=True)
+    raw_products = models.JSONField(default=list, help_text="Список товаров в формате JSON. <br>Например: [{\"product_guid\": \"1234567890\", \"product_name\": \"Товар 1\", \"product_code\": \"1234567890\", \"product_price\": 100.0}]", blank=True, null=True)
     products = models.TextField()
     order_sum = models.FloatField()
 
@@ -41,9 +41,9 @@ class OrderError(models.Model):
 
 
 filter_help_text = """
-Фильтр в формате JSON. Например: {\"number\": [1, 2, 3], \"customer_name\": [\"John\", \"Jane\"]
-Фильтровать можно по полям: number, customer_name, customer_phone, rk_name, store_id, store_address, products, order_sum, error
-Eсли значение будет найдено в поле заказа - заказ не будет отправлен в КЦ
+<br>Фильтр в формате JSON. <br>Например: {\"number\": [1, 2, 3], \"customer_name\": [\"John\", \"Jane\"]
+<br>Фильтровать можно по полям: number, customer_name, customer_phone, rk_name, store_id, store_address, products, order_sum, error
+<br>Eсли значение будет найдено в поле заказа - заказ не будет отправлен в КЦ
 """
 def default_order_error_filter() -> dict:
     return {
@@ -118,16 +118,16 @@ class Filters(models.Model):
 
 recommended_action_help_text = """
 Рекомендация для КЦ. Поддерживается вставка переменных: 
-{number} - номер заказа
-{customer_name} - имя клиента
-{customer_phone} - телефон клиента
-{rk_name} - название РК
-{store_address} - адрес точки доставки
-{store_id} - ID точки доставки
-{product} - товар из ошибки (работает только для ошибок {'[GUID]': 'Заказанное количество превышает допустимый остаток.'})
-{order_sum} - сумма заказа
-{error} - ошибка 
-+ ваши переменные из поля custom_values (если они есть)
+<br>{number} - номер заказа
+<br>{customer_name} - имя клиента
+<br>{customer_phone} - телефон клиента
+<br>{rk_name} - название РК
+<br>{store_address} - адрес точки доставки
+<br>{store_id} - ID точки доставки
+<br>{product} - товар из ошибки (работает только для ошибок {'[GUID]': 'Заказанное количество превышает допустимый остаток.'})
+<br>{order_sum} - сумма заказа
+<br>{error} - ошибка 
+<br>+ ваши переменные из поля custom_values (если они есть)
 """
 class RecommendedAction(models.Model):
     id = models.AutoField(primary_key=True)
@@ -148,9 +148,9 @@ class RecommendedAction(models.Model):
     trigger = models.TextField(help_text="Ошибка заказа, если будет найдено в строке - подсавится эта рекомендация")
     recommended_action = models.TextField(help_text=recommended_action_help_text)
     
-    ignored_values = models.JSONField(default=dict, help_text="Значения которые будут игнорироваться. Например если здесь будет указано {\"store_id\": \"null\"} и это действительно будет так - текущее рекомендация НЕ будет использована", blank=True, null=True)
-    fail_values = models.JSONField(default=dict, help_text="Значения которые будут считаться ошибками. Например: {\"store_id\": \"null\"}. Если поле заказа совпадает с одним из значений в этом поле - переменные рекомендации либо не будут подставлены, либо будут подставлены значения из custom_values при их наличии", blank=True, null=True)
-    custom_values = models.JSONField(default=dict, help_text="Переменные для вставки в рекомендацию. Например: {\"number\": 1, \"customer_name\": \"John\", \"customer_phone\": \"1234567890\"}. Так же можно использовать для \"стандартных\" значений которые будут подставляться если поле заказа пустое или подходит под fail_values", blank=True, null=True)
+    ignored_values = models.JSONField(default=dict, help_text="Значения которые будут игнорироваться. <br>Например если здесь будет указано {\"store_id\": \"null\"} и это действительно будет так - текущее рекомендация НЕ будет использована", blank=True, null=True)
+    fail_values = models.JSONField(default=dict, help_text="Значения которые будут считаться ошибками. <br>Например: {\"store_id\": \"null\"}. <br>Если поле заказа совпадает с одним из значений в этом поле - переменные рекомендации либо не будут подставлены, либо будут подставлены значения из custom_values при их наличии", blank=True, null=True)
+    custom_values = models.JSONField(default=dict, help_text="Переменные для вставки в рекомендацию. <br>Например: {\"number\": 1, \"customer_name\": \"John\", \"customer_phone\": \"1234567890\"}. <br>Так же можно использовать для \"стандартных\" значений которые будут подставляться если поле заказа пустое или подходит под fail_values", blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
 

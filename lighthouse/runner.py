@@ -60,7 +60,11 @@ def _get_navigation_timings_playwright(
         with sync_playwright() as p:
             browser = p.chromium.launch(**launch_options)
             try:
-                context = browser.new_context()
+                context = browser.new_context(
+                    viewport={"width": 1920, "height": 1080},
+                    device_scale_factor=1,
+                    is_mobile=False,
+                )
                 if headers:
                     context.set_extra_http_headers(headers)
                 page = context.new_page()

@@ -21,14 +21,14 @@ class Source(models.Model):
     url = models.URLField()
     headers = models.JSONField(default=None, blank=True, null=True,
                                help_text=("Произвольные заголовки для запроса Lighthouse."
-                                                                 "Формат: {\"Header-Name\": \"Header Value\"}"
-                                                                 "Ecли заголовки не нужны, оставить null."))
+                                                                 "<br>Формат: {\"Header-Name\": \"Header Value\"}"
+                                                                 "<br>Ecли заголовки не нужны, оставить null."))
     metadata = models.JSONField(
         blank=True,
         null=True,
         default=default_source_metadata,
         help_text=("Произвольные метаданные для ELK (например project, page_type)."
-                   "Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}")
+                   "<br>Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}")
     )
     description = models.TextField(null=True)
     is_active = models.BooleanField(default=True)
@@ -54,15 +54,15 @@ class CheckListItem(models.Model):
         null=True,
         blank=True,
         help_text=("Интервал запуска задачи.\n\n\n"
-                    "Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
+                    "<br>Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     crontab = models.ForeignKey(
         CrontabSchedule,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,  # или другое имя
-        help_text=("Расписание запуска задачи по crontab.\n\n\n"
-                    "Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
+        help_text=("Расписание запуска задачи по crontab."
+                    "<br>Один из interval или crontab должен быть задан. Если заданы оба, приоритет будет у interval.")
     )
     is_active = models.BooleanField(default=True)
     start_at = models.DateTimeField(default=default_start_at,

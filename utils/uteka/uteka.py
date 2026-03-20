@@ -34,13 +34,16 @@ OUTPUT_COLUMNS = [
 def get_uteka_price_data(
     output_path: str | Path,
     raw_output_path: str | Path | None = None,
+    file_name: str | None = None,
 ) -> list[dict]:
     """
     Скачивает выгрузку цен Ютека, оставляет только priceType=median,
     сохраняет в CSV только altProductId, priceType и цены семи конкурентов.
     Если передан raw_output_path — туда сохраняется необработанный CSV (распакованный gzip).
     """
-    url = f"{UTEKA_BASE_URL}/export/partner-prices/{UTEKA_API_KEY}/partner-prices-puls-city-msk.csv.gz"
+    if file_name is None:
+        file_name = "partner-prices-puls-city-msk.csv.gz"
+    url = f"{UTEKA_BASE_URL}/export/partner-prices/{UTEKA_API_KEY}/{file_name}"
     response = httpx.get(url)
     response.raise_for_status()
 
@@ -184,7 +187,7 @@ def _uteka_export_filename(prefix: str, suffix: str = "csv") -> str:
     max_retries=3,
     autoretry_for=(Exception,),
 )
-def run_uteka_price_task() -> list[dict]:
+def run_uteka_price_task(file_name: str | None = None) -> list[dict]:
     """
     Периодическая задача: выгрузка цен конкурентов Ютека (Москва и МО).
     Сохраняет обработанный файл price_DD_MM_YYYY_HH_MM.csv и сырой raw_price_DD_MM_YYYY_HH_MM.csv.
@@ -192,7 +195,7 @@ def run_uteka_price_task() -> list[dict]:
     UTEKA_EXPORT_DIR.mkdir(parents=True, exist_ok=True)
     path = UTEKA_EXPORT_DIR / _uteka_export_filename("price")
     raw_path = UTEKA_EXPORT_DIR / _uteka_export_filename("raw_price")
-    return get_uteka_price_data(path, raw_output_path=raw_path)
+    return get_uteka_price_data(path, raw_output_path=raw_path, file_name=file_name)
 
 
 @app.task(

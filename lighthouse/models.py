@@ -13,7 +13,18 @@ logger = logging.getLogger(__name__)
 
 
 def default_source_metadata():
-    return {"project": "not set", "page_type": "not set"}
+    return {
+                "project": "not_set",
+                "page_type": "not_set",
+                "lighthouse_device": "desktop",
+                "lighthouse_mobile": False,
+                "lighthouse_viewport": {
+                    "width": 1920,
+                    "height": 1080,
+                    "deviceScaleFactor": 1
+                },
+                "lighthouse_cpuSlowdownMultiplier": 1
+            }
 
 
 class Source(models.Model):
@@ -27,8 +38,25 @@ class Source(models.Model):
         blank=True,
         null=True,
         default=default_source_metadata,
-        help_text=("Произвольные метаданные для ELK (например project, page_type)."
-                   "<br>Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}")
+        help_text=(
+            "Произвольные метаданные, добавляемые в результат и отправляемые в ELK (например project, page_type)."
+            "<br>Формат: {\"key1\": \"value1\", \"key2\": \"value2\"}."
+            "<br><br>Дополнительные ключи для эмуляции Lighthouse:"
+            "<br><br>"
+            "<b>lighthouse_device</b>: \"mobile\" или \"desktop\" (влияет на formFactor)."
+            "<br><b>lighthouse_mobile</b>: true/false (приоритет выше lighthouse_device)."
+            "<br>"
+            "<br><b>lighthouse_viewport</b>: параметры экрана для emulation:"
+            "<br>&nbsp;&nbsp;- width: int"
+            "<br>&nbsp;&nbsp;- height: int"
+            "<br>&nbsp;&nbsp;- deviceScaleFactor / dpr: number (DPR)."
+            "<br>Дефолт для desktop: 1920x1080, DPR=1."
+            "<br>Если deviceScaleFactor не указан, используйте dpr."
+            "<br>"
+            "<br><b>lighthouse_cpuSlowdownMultiplier</b>: число для throttling (передается как "
+            "--throttling.cpuSlowdownMultiplier). По умолчанию 1."
+            "<br>"
+        )
     )
     description = models.TextField(null=True)
     is_active = models.BooleanField(default=True)

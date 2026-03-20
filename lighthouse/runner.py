@@ -42,7 +42,8 @@ def _get_navigation_timings_playwright(
     url: str,
     headers: dict | None,
     timeout_ms: int = 30000,
-) -> tuple[float | None, float | None]:
+    context_mode: dict[str, Any] | None = None,
+) -> tuple[float | None, float | None, ]:
     """
     Открывает url в Playwright/Chromium и возвращает DNS/TCP тайминги навигации
     из performance.getEntriesByType('navigation')[0].
@@ -50,6 +51,12 @@ def _get_navigation_timings_playwright(
     """
     try:
         chrome_path = os.environ.get("CHROME_PATH")
+        if context_mode is None:
+            context_mode = {
+                "viewport": {"width": 1920, "height": 1080},
+                "device_scale_factor": 1,
+                "is_mobile": False,
+            }
         launch_options: dict[str, Any] = {
             "headless": True,
             "args": ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
@@ -60,10 +67,13 @@ def _get_navigation_timings_playwright(
         with sync_playwright() as p:
             browser = p.chromium.launch(**launch_options)
             try:
-                context = browser.new_context(
-                    viewport={"width": 1920, "height": 1080},
-                    device_scale_factor=1,
-                    is_mobile=False,
+                context = browser.new_context(**context_mode)
+                logger.info(
+                    "Playwright mode: is_mobile=%s, viewport=%sx%s, dpr=%s",
+                    context_mode["is_mobile"],
+                    context_mode["viewport"]["width"],
+                    context_mode["viewport"]["height"],
+                    context_mode["device_scale_factor"],
                 )
                 if headers:
                     context.set_extra_http_headers(headers)
@@ -105,6 +115,75 @@ def _run_once(cmd: list[str], timeout_sec: int) -> dict[str, Any]:
     return json.loads(lighthouse_stats.stdout)
 
 
+def _get_modes_from_metadata(metadata: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    Достаёт режим Lighthouse из metadata и формирует два контекста:
+    - playwright_mode: параметры для Playwright context.new_context(...)
+    - lighthouse_mode: параметры/флаги для Lighthouse CLI
+
+    Поддерживаемые опциональные ключи в metadata:
+    - lighthouse_device: "mobile" | "desktop"
+    - lighthouse_mobile: bool (приоритет выше lighthouse_device)
+    - lighthouse_viewport: {"width": int, "height": int, "deviceScaleFactor"?: int|float, "dpr"?: int|float}
+    - lighthouse_cpuSlowdownMultiplier: int|float
+    """
+    lighthouse_device_raw = metadata.get("lighthouse_device")
+    lighthouse_mobile_raw = metadata.get("lighthouse_mobile")
+
+    is_mobile = False
+    if isinstance(lighthouse_device_raw, str):
+        is_mobile = lighthouse_device_raw.strip().lower() == "mobile"
+    if isinstance(lighthouse_mobile_raw, bool):
+        is_mobile = lighthouse_mobile_raw
+
+    default_desktop_viewport = {"width": 1920, "height": 1080, "deviceScaleFactor": 1}
+    default_mobile_viewport = {"width": 375, "height": 812, "deviceScaleFactor": 2}
+    viewport_defaults = default_mobile_viewport if is_mobile else default_desktop_viewport
+
+    viewport_override = metadata.get("lighthouse_viewport")
+    width = viewport_defaults["width"]
+    height = viewport_defaults["height"]
+    device_scale_factor = viewport_defaults["deviceScaleFactor"]
+    if isinstance(viewport_override, dict):
+        if isinstance(viewport_override.get("width"), int):
+            width = viewport_override["width"]
+        if isinstance(viewport_override.get("height"), int):
+            height = viewport_override["height"]
+        dpr_val = viewport_override.get("deviceScaleFactor", viewport_override.get("dpr"))
+        if isinstance(dpr_val, (int, float)):
+            device_scale_factor = dpr_val
+
+    cpu_slowdown = metadata.get("lighthouse_cpuSlowdownMultiplier", 1)
+    if not isinstance(cpu_slowdown, (int, float)):
+        cpu_slowdown = 1
+
+    # Важно: в вашей версии Lighthouse допустимые значения --preset:
+    # "desktop", "perf", "experimental". Поэтому для эмуляции mobile
+    # используем emulated-form-factor + screenEmulation.*, а preset оставляем desktop.
+    preset = "desktop"
+    emulated_form_factor = "mobile" if is_mobile else "desktop"
+    mobile_lh_flag = "true" if is_mobile else "false"
+
+    playwright_mode: dict[str, Any] = {
+        "is_mobile": is_mobile,
+        "viewport": {"width": width, "height": height},
+        "device_scale_factor": device_scale_factor,
+    }
+    lighthouse_mode: dict[str, Any] = {
+        "preset": preset,
+        "emulated_form_factor": emulated_form_factor,
+        "mobile": is_mobile,
+        "mobile_lh_flag": mobile_lh_flag,
+        "screen": {
+            "width": width,
+            "height": height,
+            "deviceScaleFactor": device_scale_factor,
+        },
+        "throttling": {"cpuSlowdownMultiplier": cpu_slowdown},
+    }
+    return playwright_mode, lighthouse_mode
+
+
 def run_lighthouse(
     url: str,
     metadata: dict[str, Any] | None = None,
@@ -128,6 +207,16 @@ def run_lighthouse(
     headers = headers or {}
     tmp_path = None
 
+    playwright_mode, lighthouse_mode = _get_modes_from_metadata(metadata)
+    preset = lighthouse_mode["preset"]
+    emulated_form_factor = lighthouse_mode["emulated_form_factor"]
+    is_mobile = lighthouse_mode["mobile"]
+    mobile_lh_flag = lighthouse_mode.get("mobile_lh_flag") or ("true" if is_mobile else "false")
+    width = lighthouse_mode["screen"]["width"]
+    height = lighthouse_mode["screen"]["height"]
+    device_scale_factor = lighthouse_mode["screen"]["deviceScaleFactor"]
+    cpu_slowdown = lighthouse_mode["throttling"]["cpuSlowdownMultiplier"]
+
     # Флаги для headless в контейнере: --no-sandbox, --disable-gpu
     user_data_dir = f"/tmp/chrome-profile-{uuid.uuid4().hex}"
     chrome_flags = f"--headless --no-sandbox --disable-cache --user-data-dir={user_data_dir} --disable-gpu"
@@ -135,18 +224,27 @@ def run_lighthouse(
         "lighthouse",
         url,
         "--quiet",
-        "--preset=desktop",
-        "--emulated-form-factor=desktop",
-        "--screenEmulation.width=1920",
-        "--screenEmulation.height=1080" ,
-        "--screenEmulation.deviceScaleFactor=1",
-        "--screenEmulation.mobile=false",
-        "--throttling.cpuSlowdownMultiplier=1",
+        f"--preset={preset}",
+        f"--form-factor={emulated_form_factor}",
+        f"--screenEmulation.width={width}",
+        f"--screenEmulation.height={height}",
+        f"--screenEmulation.deviceScaleFactor={device_scale_factor}",
+        f"--screenEmulation.mobile={mobile_lh_flag}",
+        f"--throttling.cpuSlowdownMultiplier={cpu_slowdown}",
         f"--chrome-flags={chrome_flags}",
         "--output=json",
         "--output-path=stdout",
         "--only-audits=first-contentful-paint,total-blocking-time,speed-index,largest-contentful-paint,cumulative-layout-shift",
     ]
+    logger.info(
+        "Lighthouse mode: preset=%s, formFactor=%s, mobile=%s, screen=%sx%s, dpr=%s",
+        preset,
+        emulated_form_factor,
+        is_mobile,
+        width,
+        height,
+        device_scale_factor,
+    )
     chrome_path = os.environ.get("CHROME_PATH")
     if chrome_path:
         base_cmd.append(f"--chrome-path={chrome_path}")
@@ -180,7 +278,12 @@ def run_lighthouse(
         lcp = _safe_metric(data["audits"], "largest-contentful-paint")
         cls = _safe_metric(data["audits"], "cumulative-layout-shift")
 
-        dns_ms, tcp_ms = _get_navigation_timings_playwright(url, headers or None, timeout_ms=30000)
+        dns_ms, tcp_ms = _get_navigation_timings_playwright(
+            url,
+            headers or None,
+            timeout_ms=30000,
+            context_mode=playwright_mode,
+        )
         metrics = {
             "fcp_ms": fcb,
             "fcp_s": round(fcb / 1000, 2) if fcb is not None else None,
@@ -205,6 +308,8 @@ def run_lighthouse(
             "metadata": metadata,
             "url": url,
             "metrics": metrics,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": None,
             "message": None,
         }
@@ -218,6 +323,8 @@ def run_lighthouse(
             "status": "error",
             "metadata": metadata,
             "metrics": None,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": "Lighthouse failed",
             "message": f"stderr: {eCPE.stderr.strip()[:500]} | stdout: {eCPE.stdout.strip()[:500]}",
         }
@@ -230,6 +337,8 @@ def run_lighthouse(
             "status": "error",
             "metadata": metadata,
             "metrics": None,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": "Lighthouse timeout",
             "message": str(eTE),
         }
@@ -242,6 +351,8 @@ def run_lighthouse(
             "status": "error",
             "metadata": metadata,
             "metrics": None,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": "Lighthouse binary not found",
             "message": str(eFNF),
         }
@@ -254,6 +365,8 @@ def run_lighthouse(
             "status": "error",
             "metadata": metadata,
             "metrics": None,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": "Invalid JSON from Lighthouse",
             "message": str(eJSDE),
         }
@@ -266,6 +379,8 @@ def run_lighthouse(
             "status": "error",
             "metadata": metadata,
             "metrics": None,
+            "playwright_mode": playwright_mode,
+            "lighthouse_mode": lighthouse_mode,
             "error": "Unexpected exception",
             "message": str(e),
         }
